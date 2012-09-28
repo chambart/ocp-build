@@ -11,6 +11,17 @@
 (*                                                                            *)
 (******************************************************************************)
 
+let exec_magic_number = "Caml1999X008"
+and cmi_magic_number = "Caml1999I014" (* new 4.00.0 *)
+and cmo_magic_number = "Caml1999O007"
+and cma_magic_number = "Caml1999A008"
+and cmx_magic_number = "Caml1999Y011"
+and cmxa_magic_number = "Caml1999Z010"
+and ast_impl_magic_number = "Caml1999M015" (* new 4.00.0 *)
+and ast_intf_magic_number = "Caml1999N014" (* new 4.00.0 *)
+and cmxs_magic_number = "Caml2007D001"
+and cmt_magic_number = "Caml1011T001"
+
 module Tbl = struct
   type ('a, 'b) t = ('a, 'b) Tbl.t =
     Empty
