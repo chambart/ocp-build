@@ -1,12 +1,20 @@
 
+To clone:
+---------
+
+0/ 
+
+    git clone git@github.com:OCamlPro/typerex.git
+    cd typerex
+    git checkout typerex2
+
 To build:
 ---------
 
 1/ Install the sources of OCaml 4.00 as subdirectory ocaml/ocaml/
 
     cd ocaml
-    tar zxf ~/Downloads/ocaml-4.00.0.tar.gz
-    mv ocaml-4.00.0 ocaml
+    svn checkout http://caml.inria.fr/svn/ocaml/version/4.00 ocaml
     cd ..
 
 2/ configure
