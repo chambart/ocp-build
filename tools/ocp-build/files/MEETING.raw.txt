@@ -1,0 +1,207 @@
+**************************************************************************
+*                                                                        *
+*                        TypeRex OCaml Studio                            *
+*                                                                        *
+*                 Thomas Gazagnaire, Fabrice Le Fessant                  *
+*                                                                        *
+*  Copyright 2011-2012 OCamlPro                                          *
+*  All rights reserved.  This file is distributed under the terms of     *
+*  the GNU Public License version 3.0.                                   *
+*                                                                        *
+*  TypeRex is distributed in the hope that it will be useful,            *
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+*  GNU General Public License for more details.                          *
+*                                                                        *
+**************************************************************************
+
+Quand on invoque ocp-build, il cherche un fichier oc-build.root dans le répertoire courant, qui contient un certain nombre de fichiers .ocp. ocp-build.root set généré automatiquement par ocp-build -scan
+
+ocp-build -conf génère un fishier ocp-build.conf dans lequel "ocamlc"="/usr/bin/ocamlc.opt" etc
+
+REMARK: le .root pourrait être dans ~/.ocp/ mais ça va être la merde si il y a plusieurs versions de packages sur un même projet
+
+REMARK: un seul .ocp ça marche avec des
+begin library "truc"
+  dirname = "x/y/z"
+end
+
+Pas implémenté: ocp-build remonte dans la hiérarchie de fichier à partir du chemin courant pour trouver ocp-build.root
+
+Héritage des configs entre les répertoires"
+X/foo.ocp
+Y/Y/bar.ocp
+bar.ocp est chargé après avoir lu foo.ocp (donc il hérite des trucs de haut niveau)
+
+REMARK: c'est pas trop excessif ? Est-ce qu'en en mettant qu'un seul c'est pas suffisant ?
+mais effectivement avec un seul default.ocp à la racine que tout le monde importe ça serait suffisant.
+Mais la solution serait de ne pas exporter les options mais exporter les configs.
+Ou sinon on peut utiliser export pour dire qu'un fichier .ocp exporte son contenu
+a ses sous-repertoires de maniere explicite.
+
+Créer un projet:
+begin library "compile"
+  comp = [-g"]
+  files = [ "typemod.ml"; … ]
+  requires = [ "unix" ]
+end
+
+C'est possible d'avoir des dépendances sur des programmes (pour le bootstrap).
+On ne peut pas avoir une librairie et un programme avec le meme nom.
+
+options: 
+o -> ocamlc/ocamlop/ocamldp
+comp -> ocamlc/ocamlopt -c
+link -> ocamlc/ocamlopt
+
+bytecompt -> ocamlc -c
+bytelink -> ocamlc
+
+asmcomp -> ocamlopt -c
+asmlib -> ocamlopt
+
+has_asm = true | false
+has_byte = true | phase
+
+lexer.mll et parser.mly ça marche aussi.
+pour les fichiers avec ml+mli il suffit de mettre le ml. S'il n'y a qu'un mli, il faut le mettre.
+
+on peut faire files = [ "typemod.ml" (comp += …) ] ou 
+comp = ..
+begin library "foo"
+comp += …
+end
+
+ou 
+
+begin
+  comp = …
+end
+
+ou 
+
+files = [ "foo.ml"; begin (comp=….) "bar.ml" .. end; ]
+ou
+files = [ "foo.ml" ] 
+comp = 
+files += "bar.ml"
+
+Pour linker avec des cma/cmxa qui existent deja. Créer un projet :
+
+generated = true
+begin library "unix"
+end
+begin library "str"
+  requires = "unix"
+end
+
+A terme, ocp-autogen va générer un .ocp à partir des sources. 
+Dans ce cas, c'est bien d'ajouter les sources aux librairies générées.
+
+sorted = true (* par default *)
+files = [ "x/bar.ml"; "y/toto.ml" ]
+
+pour les packs :
+files = ["a.ml";
+pack "B"(comp=…)[ "b/a.ml"; "b/c.ml" ](comp= …)
+ ]
+
+REMARK: 
+dirname ouvre l'espace de nom des fichiers dans un répertoire
+il faudrait rajouter : autopack = true | false pour packer les sources en fonction
+de la hiérarchie de répertoire dans laquelle ils sont (de maniere orthogonale avec les dirnames).
+
+REMARK
+syntaxe de :=, <-, =, += Par défaut ça ajoute, mais on veut pouvoir re-écrire
+
+comment ça compile:
+
+ocp-build.root
+_obuild/compllib/{*cmo,*.cmx,*.cma, *.a, *.o, *.asm, *.byte) <- pas de .ml, pas de .mli
+_obluid/cache.cmd
+
+Le cache se rappelle la ligne de commande pour compiler chaque cible, 
+donc si on change une option de compil, si on rend plus vieux un ficher, 
+si on rajoute une dépendance, ca recompile. Mais si tu changes un fichier
+d'un package à un autre, il va pas effacer les fichiers objets du premier
+package ce qui peut poser des problèmes.
+
+REMARK: il faudrait faire un truc hygiénique comme dans ocamlbuild
+
+Les fichiers sont compilés dans le répertoire d'origine, les fichiers objets sont copiés dans _obuild
+
+begin 
+  files =[…]
+end
+begin library "a"
+end
+begin library "b"
+end
+
+Ca génere 2 .annots lequel garder ? A priori y a pas vraiment de soucis.
+Est-ce qu'il y a des soucis avec ocamlyacc et ocamllex ?
+a priori ca genere toujours les memes fichiers .ml et .mli quelque soit les options.
+
+les configs:
+begin config "camlp4-toto"
+  pp=[ "camlp4"; …]
+end
+begin library "foo"
+  files = [ "toto.ml"(pp=camlp4-toto")]
+end
+
+REMARK: pas de requiers dans les configs pour le moment
+
+REMARK: on sait pas faire les trucs conditionnels 
+
+files = [ foo.ml; mutex.ml (<si y a des threads>)]
+
+REMARK: comment gérer profile/debug et byte/asm (est-ce qu'on veut tous les générer
+et les mettre dans des répertoires différents ?
+ce qui veut dire qu'on va tout recompiler plusieurs fois alors qu'a priori il y a des optims à faire.
+
+REMARK: pour l'instant ce qui est chiant à faire c'est par exemple la gestion des threads
+(y a de la compilation conditionnelle à faire) et les patterns dans les noms de fichiers
+(support de *.ml par exemple)
+
+
+Archi:
+
+
+ocp-build.engine
+
+une table de buildRule ( cibles, dépendances, commande ) et il construit un ordonnancement automatique (DAG)
+1/ calcul de la couverture des regles a construire
+2/ pour chaque règle, il calcule le nombre de targets manquantes
+3/ queue_ready, queue_waiting (qui a des missing sources)
+4/ slots d'éxécutation (résolution des cibles en parallèle) -> lorsqu'une règle est exécutée, 
+update des sources manquantes des dépendances
+4/ table avec les regles en cours de construction pour cas des .cmo -> .cmi <- .cmx et gérer les commandes
+
+quand tu as une cible qui peut-être générée par plusieurs arcs -> cibles principales et secondaires, si c'est secondaire c'est pas grave
+
+Indépendant complètement d'ocaml
+
+ocp-buid.ocp
+
+lire et écrire les fichiers .ocp
+.ocp -> AST -> list de projets/packages
+
+ocp-build.main
+
+buildOcamlRules.ml génère les règles pour les dépendances d'un projet
+C'est le moteur qui gainère les règles et lance ocp-build.engine.
+lecture des cmxa et cma pour générer des fichiers .ocp automatiquement.
+
+REMARK: .cmta qui contient une liste des .cmt triés dans l'ordre de compilation
+rajouter des infos (path+ -I options) dans les .cmt mais c'est pas sympa pour les librairies
+parce que ça dépend de la machine et du pat ou c'est buildé donc pas cool pour l'installe
+
+REMARK: API pour ocp-build.ocp. val get_dep : string (* filename *) -> project list
+
+REMARK: ajouter des docs
+
+REMARK: pour le calcul des dépendances, ce calcul est refait dès qu'on modifie un fichier, pour tous les fichiers
+qui indiquent un "requires" sur le répertoire du fichier. C'est un peu trop, il suffit de le faire uniquement pour
+tous les fichiers vraiment modifiés, sauf bien-sûr quand un fichier est rajouté ou supprimé (c'est donc plus sur la
+liste des sources que les dépendances devraient ^etre calculées).

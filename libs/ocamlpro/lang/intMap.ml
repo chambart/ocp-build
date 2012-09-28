@@ -15,7 +15,9 @@
 (*                                                                        *)
 (**************************************************************************)
 
-module Map = Map.Make(struct type t = int let compare = compare end)
+module Map = Map.Make(struct type t = int
+                             let compare (x:int) y = compare x y
+end)
 
 include Map
 

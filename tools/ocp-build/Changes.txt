@@ -1,0 +1,14 @@
+# Change Log
+
+2012/07/09: Fabrice
+* add substitutions by environment variables in "dirname" and commands
+  * variables should be in %{XXX}%
+  * for each project XXX, variables %{XXX_SRC_DIR}% and %{XXX_DST_DIR}%
+* Better handling of objects kinds
+* Keep order of requirements when possible
+
+2012/07/04: Fabrice
+* add if ... then ... else ...
+* copy temp sources (from .mll and .mly) in an alternate tree (_obuild/_temp_tree)
+
+2012/07/04: start of Changes.txt

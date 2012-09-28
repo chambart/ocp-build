@@ -29,7 +29,7 @@ module Make :
     (M : sig
       type t
       val node : t -> node
-      val iter_deps : (t -> unit) -> t -> unit
+      val iter_edges : (t -> unit) -> t -> unit
     end) ->
       sig
         exception RecursiveDependency of M.t

@@ -1,0 +1,76 @@
+**************************************************************************
+*                                                                        *
+*                        TypeRex OCaml Studio                            *
+*                                                                        *
+*                 Thomas Gazagnaire, Fabrice Le Fessant                  *
+*                                                                        *
+*  Copyright 2011-2012 OCamlPro                                          *
+*  All rights reserved.  This file is distributed under the terms of     *
+*  the GNU Public License version 3.0.                                   *
+*                                                                        *
+*  TypeRex is distributed in the hope that it will be useful,            *
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+*  GNU General Public License for more details.                          *
+*                                                                        *
+**************************************************************************
+
+2011-11-16: Fabrice
+ - Fix: renamed boot/ocp-build.byte to boot/ocp-build.boot to avoid it being
+     cleaned by -distclean
+ - Fix: -program-ocp now generates a program description
+ - Fix: correctly save list of files in ocp-build.root after -scan
+
+2011-07-12: Fabrice
+ - Added file 'ocp-standard-ocaml.ocp' that can be used to describe
+   what is expected from the current OCaml distribution.
+
+2011-04-08: Fabrice
+ - Added option -conf, to generate a file with the commands
+   to use to compile. The file can be manually modified.
+   The file can be stored either in a per-user fashion (in ~/.ocp/)
+   or in a per-project fashion (in ~/_obuild/).
+ - Added option -distrib, to generate .ocp files for all installed
+   libraries. These files can be manually edited. Most dependencies
+   are automatically generated.
+ - Added option -autogen, to generate a .ocp file for a given directory,
+   containing infered sources in the right order. External dependencies
+   are not yet computed.
+
+2011-03-18: Fabrice
+  - Rewritten parser of OCF files, more strict, with locations.
+     - Options per file between parenthesis
+     - begin ... end scopes limiters
+     - projects names are between ""
+     - new option "generated"
+  - New arguments:
+     -oclean: remove binary files by extension
+     -odistclean: remove generated files by extension
+     - anonymous arguments are used as targets
+  - Replaced argument -opt by -asm, extension .opt by .asm
+  - Print better error locations (if an error occurs while running a rule,
+     print the location of the project).
+
+2011-03-17: Fabrice
+  - Added per project options
+     dep: flags for ocamldep (also added by 'o')
+  - Added "objects" type for collection of files, without generating a library
+  - Added project links: a file "foo:bar.ml" means that the project will use
+     the files generated from bar.ml in the foo project.
+  - Added "project_SRC_DIR" and "project_DST_DIR" to env for each project
+  - Added statistics on executed commands and generated files
+
+2011-03-16: Fabrice
+  - Added per project options, with lists of arguments:
+     o : flags for ocamlc, ocamlopt and ocamldep
+     comp : flags for compiling (ocamlc -c, ocamlopt -c)
+     link : flags for linking (ocamlc and ocamlopt)
+     asm : flags for ocamlopt
+     byte : flags for ocamlc
+     asmcomp, asmlink, bytecomp, bytelink : flags for ocamlc or ocamlopt X compiling or linking
+     pp : preprocessor
+
+2011-03-15: First commit from SVN (Fabrice)
+  - Bug fixes:
+    - .cmi files are always generated, even when no static dependencies are present
+    - already generated projects do not create rules

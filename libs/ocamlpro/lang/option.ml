@@ -22,7 +22,7 @@ let map f = function
 let default d = function
   | None   -> d
   | Some x -> x
-      
+
 let iter fn = function
   | None   -> ()
   | Some x -> fn x

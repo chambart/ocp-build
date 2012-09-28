@@ -26,7 +26,7 @@ module Make (M : Map.S) = struct
 
 (*s Then a trie is just a tree-like structure, where a possible
     information is stored at the node (['a option]) and where the sons
-    are given by a map from type [key] to sub-tries, so of type 
+    are given by a map from type [key] to sub-tries, so of type
     ['a t M.t]. The empty trie is just the empty map. *)
 
   type key = M.key list
@@ -68,13 +68,13 @@ module Make (M : Map.S) = struct
     ins (l,t)
 
 (*s When removing a binding, we take care of not leaving bindings to empty
-    sub-tries in the nodes. Therefore, we test wether the result [t'] of 
+    sub-tries in the nodes. Therefore, we test wether the result [t'] of
     the recursive call is the empty trie [empty]: if so, we just remove
     the branching with [M.remove]; otherwise, we modify it with [M.add]. *)
 
   let rec remove l t = match (l,t) with
     | [], Node (_,m) -> Node (None,m)
-    | x::r, Node (v,m) -> 
+    | x::r, Node (v,m) ->
 	try
 	  let t' = remove r (M.find x m) in
 	  Node (v, if t' = empty then M.remove x m else M.add x t' m)
@@ -86,36 +86,36 @@ module Make (M : Map.S) = struct
     [M.mapi], [M.iter] and [M.fold]. For the last three of them,
     we have to remember the path from the root, as an extra argument
     [revp]. Since elements are pushed in reverse order in [revp],
-    we have to reverse it with [List.rev] when the actual binding 
+    we have to reverse it with [List.rev] when the actual binding
     has to be passed to function [f]. *)
 
   let rec map f = function
     | Node (None,m)   -> Node (None, M.map (map f) m)
     | Node (Some v,m) -> Node (Some (f v), M.map (map f) m)
 
-  let mapi f t = 
+  let mapi f t =
     let rec maprec revp = function
-    | Node (None,m) -> 
+    | Node (None,m) ->
 	Node (None, M.mapi (fun x -> maprec (x::revp)) m)
-    | Node (Some v,m) -> 
+    | Node (Some v,m) ->
 	Node (Some (f (List.rev revp) v), M.mapi (fun x -> maprec (x::revp)) m)
     in
     maprec [] t
 
   let iter f t =
     let rec traverse revp = function
-      | Node (None,m) -> 
+      | Node (None,m) ->
 	  M.iter (fun x -> traverse (x::revp)) m
-      | Node (Some v,m) -> 
+      | Node (Some v,m) ->
 	  f (List.rev revp) v; M.iter (fun x t -> traverse (x::revp) t) m
     in
     traverse [] t
 
   let rec fold f t acc =
     let rec traverse revp t acc = match t with
-      | Node (None,m) -> 
+      | Node (None,m) ->
 	  M.fold (fun x -> traverse (x::revp)) m acc
-      | Node (Some v,m) -> 
+      | Node (Some v,m) ->
 	  f (List.rev revp) v (M.fold (fun x -> traverse (x::revp)) m acc)
     in
     traverse [] t acc
@@ -138,7 +138,7 @@ module Make (M : Map.S) = struct
 	  M.equal comp m1 m2
       | Node (Some a, m1), Node (Some b, m2) ->
 	  eq a b && M.equal comp m1 m2
-      | _ -> 
+      | _ ->
 	  false
     in
     comp a b

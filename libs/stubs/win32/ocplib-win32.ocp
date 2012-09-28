@@ -1,0 +1,12 @@
+
+begin library "ocplib-win32"
+
+  files = [ "win32_waitpids_c.c" "win32_fileinfo_c.c"
+
+              "win32Fileinfo.ml" "win32.ml"
+          ]
+
+  if system = "win64" then
+    link = [ "-cclib"; "user32.lib" ]
+  requires = [ "unix" ]
+end

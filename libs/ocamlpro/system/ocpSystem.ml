@@ -54,7 +54,7 @@ let output_le_ints oc il =
 
 (* read a little-endian int from a string *)
 let read_le_int buf off =
-  let n = Char.code buf.[off] 
+  let n = Char.code buf.[off]
     + ((Char.code buf.[off+1]) lsl 8)
     + ((Char.code buf.[off+2]) lsl 16)
     + ((Char.code buf.[off+3]) lsl 24) in
@@ -72,7 +72,7 @@ let input_le_int ic =
   let buf = String.create (Sys.word_size / 8) in
   really_input ic buf 0 (String.length buf);
   read_le_int buf 0
-  
+
 
 (* Read n ints *)
 let input_le_ints ic n =

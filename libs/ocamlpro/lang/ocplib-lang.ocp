@@ -15,6 +15,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
+
 begin library "ocplib-lang"
 
   files = [
@@ -27,13 +28,16 @@ begin library "ocplib-lang"
     "ocpDigest.ml"
     "option.ml"
     "intMap.ml"
+    "intSet.ml"
     "stringMap.ml"
     "stringSet.ml"
     "toposort.ml"
+    "linearToposort.ml"
     "ocamllexer.mll"
     "trie.ml"
     "ocpLang.ml"
   ]
+  requires = [ "ocplib-debug" ]
 end
 
 begin library "ocplib-test"

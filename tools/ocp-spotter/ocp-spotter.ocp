@@ -1,0 +1,12 @@
+
+begin program "ocp-spotter"
+
+      files = [ "utils.ml" "checksum.ml" "dotfile.ml" "xset.ml" "treeset.ml" "command.ml" "typeexpand.ml" "xlongident.ml" "name.ml" "xident.ml" "xpath.ml" "locident.ml" "typeFix.ml" "xprinttyp.ml" "ext.ml" "ttfold.ml" "cmt.ml" "spot.ml" "spoteval.ml" "spotconfig_intf.ml" "spotconfig.ml" "spotfile.ml" "pathreparse.ml" "ocamlspot.ml" ]
+
+  requires = [ "ocaml-driver"
+                 "ocp-build-misc" (* for BuildFind.find_cmt_in_obuild *)
+
+]
+
+end
+

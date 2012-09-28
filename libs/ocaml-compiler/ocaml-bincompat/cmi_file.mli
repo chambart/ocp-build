@@ -18,9 +18,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-val input_cmi : string -> in_channel -> string -> Env.cmi_infos
-
+val input : string -> in_channel -> Cmi_format.cmi_infos
+val read : string -> Cmi_format.cmi_infos
 
 (* [read modname filename] *)
-val read_module : string -> string -> Env.cmi_infos
-val read_cmi : string -> Env.cmi_infos
+val read_module : string -> string -> Cmi_format.cmi_infos

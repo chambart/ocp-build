@@ -16,7 +16,7 @@
 (**************************************************************************)
 
 (* {{extend Stream}} *)
-include Stream 
+include Stream
 
 let to_list stream =
   let list = ref [] in

@@ -1,0 +1,3 @@
+begin library "ocplib-debug"
+  files = [ "debugVerbosity.ml" "debugTyperex.ml" ]
+end

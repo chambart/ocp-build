@@ -12,7 +12,7 @@ echo '(*                                                         *)'
 echo '(***********************************************************)'
 
 
-$EXTRACT -impl $directory/utils/config.mlp -val cmi_magic_number
+$EXTRACT -impl $directory/utils/config.ml -val cmi_magic_number
 
 
 echo module Lexing = struct
@@ -148,8 +148,9 @@ echo end
 
 echo module Cmi_format = struct
 
-$EXTRACT  $directory/typing/env.ml \
-    -type pers_flags
+$EXTRACT  $directory/typing/cmi_format.ml \
+    -type pers_flags \
+    -type cmi_infos
 
 echo end
 

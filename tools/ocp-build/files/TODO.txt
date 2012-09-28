@@ -1,0 +1,170 @@
+- detect when the same file is defined twice in "files"
+
+New option -view-tree pour afficher l'arbre des répertoire avec les
+projets dedans.
+
+For each package, we build the following:
+
+$package:byte -> .cmi/.cmo with -g option
+$package:asm -> .cmi/.cmx with -g option, without inter-package optimizations
+   .o/.cmx are stored in the $package/asm/ directory
+   .cmxa/.a are stored in the $package/debug/ directory
+$package:asm:final -> .cmx with inter-package optimizations
+   .o/.cmx/.cmxa/.a are stored in the $package/final directory
+$package:asm:prof: -> .cmx with profiling information
+   .o/.cmx/.cmxa/.a are stored in the $package/profile/ directory
+
+Directories:
+$package/byte/: .cmi + .cmo + .cma [-g]
+$package/asm/: .cmi + .cmxa + .a [-g]
+$package/asm/cmx/: .cmx + .o (not installed) [-g]
+$package/final/: .cmx + .o + .cmxa + .a
+$package/profile/: .cmxa + .a [-p -g]
+$package/profile/cmx/: .cmx + .o (not installed)[-p -g]
+$package/byte/threads/: .cmi + .cmo + .cma [-thread]
+$package/asm/threads/: .cmi + .cmxa + .a [-thread]
+$package/asm/threads/cmx/: .cmx + .o (not installed)[-thread]
+
+If nothing is specified, the package provides both $package:byte and
+$package:asm.
+
+Providing $package/threads is equivalent to providing $package/byte/threads
+and $package/asm/threads
+
+When a package generates both bytecode and native code, interfaces are
+always compiled twice.
+
+------------------------------------------------
+
+ocp-build -library x
+ocp-build -program x
+
+begin library/program "x"
+   sort = true
+   files = [ "..." ]
+   requires = [ ]
+end
+
+ocp-build -import toto.cma
+
+On peut vouloir installer cette bibliothèque dans un répertoire
+spécial, soit dans le projet, soit dans un répertoire partagé. Dans ce
+cas, ocp-build doit:
+- copier les fichiers nécessaires (.cmi/.cmo/.cmx/.cma/.o/.a) dans les bons
+ répertoires en respectant l'arborescence d'installation d'ocp-build
+- vérifier qu'il n'introduit pas d'incohérence avec des projets déjà installés
+ (dépendances vers des .cmi ou des .cmx avec des CRC différents)
+
+-------------------------------------------------
+
+Problème: le fait d'utiliser un répertoire local pour compiler fait
+qu'à chaque changement d'un .ocp qui modifie l'ordre des règles,
+le numéro du répertoire change.
+
+-------------------------------------------------
+
+begin camlp4_syntax "bin_prot.syntax"
+
+end
+
+meta camlp4_syntax "toto"  = [ ".." ".." ]
+meta library "x" = [ ".." ".." ]
+begin rule "file.to.generate"
+  sources = [ ".." ".." ]
+  other_targets = [ ".." ".." ]
+  command = [ ".." ".." ]
+  loaddeps = [ make: "x.depend" ]
+end
+begin fileset
+
+------------------------------------
+- docuemntation
+- detect loops in dependencies/packages
+- generate .ocp files for installation
+
+Workshop ML: weaknesses of SML
+
+- lack of support for records
+- interoperability with C
+- need better access to databases
+- lack of native thread support
+
+--------------------------------------
+
+On pourrait avoir un fichier de description par paquet, spécifiant en
+particulier l'utilisation des mtimes ou des digests.
+
+
+-------------------------------------
+
+We want to be able to specify:
+
+requirements that only apply to some files
+
+files = [
+  "a.ml"
+  "b.ml" ( requires += [ "toto" ] )
+  begin (requires += [ "tutu.ml" ] )
+    "c.ml"
+    "d.ml"
+  end
+]
+
+and still, all the requirements should be accumulated at the end
+for the link. For that, we need requires to both modify a per-file
+option, and a per-project option.
+
+---------------------------------------
+
+We should be able:
+- to add new ad-hoc rules to build targets
+- to add dependencies not visible from ocaml
+
+---------------------------------------
+
+- scan multiple directories, including OCaml install directory
+
+-------------------------------------------
+
+x = [ "x" ] + y
+files = x { toto = true; cc = `cc + "-Wall" }
+begin scope
+
+   requirements = [ "toto" { for_pp = true } ]
+   files = files + [ "z" ]
+
+   begin library "toto"
+     requires = requirements
+     cc = [ "gcc" ]
+   end
+end
+
+
+--------------------------------------------
+
+Les attributs des variables peuvent aussi être vus comme
+un ensemble de modificateurs sur l'environnement courant.
+
+1/ on parse, on obtient un AST
+2/ on parcourt l'AST pour définir:
+  - un environnement courant
+  - un ensemble de configs
+  - un ensemble de paquets
+     chaque paquet est juste défini par un nom et son environnement
+3/ pour chaque environnement de paquet, on calcule
+
+--------------------------------------------
+Add line/filename:
+
+Don't know what to do with [bigEndian]
+	from project ocplib-endian in dir ./other-projects/ocaml-binutils/libs/ocplib-endian
+
+idem for incomplete projects...
+--------------------------------------------
+
+Fix problems with atomicity of copy of files on Windows
+
+-------------------------------------------
+
+.mlpp files do not have a dependency to the version of the compiler ?
+--> changing the version of the compiler should trigger a rebuild

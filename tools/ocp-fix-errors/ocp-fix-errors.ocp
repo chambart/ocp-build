@@ -1,0 +1,25 @@
+begin library "ocp-fix-errors-lib"
+  files = [
+
+ "fixUtils.ml"
+  "errorLocation.ml"
+
+  "oCamlPattern.ml" "oCamlPatternParser.mly" "fixPattern.ml"
+  "fixRecord.ml"
+  "fixInterface.ml"
+
+  "fixFloats.ml"  "fixExpect.ml"
+
+  "fixSemi.ml"
+  "fixUnusedVariables.ml"
+  "fixUnusedPatterns.ml"
+
+  "fixMain.ml" ]
+  requires = [ "ocaml-approx" "ocaml-parsing" "ocplib-lang" "ocplib-system" ]
+end
+
+begin program "ocp-fix-errors"
+  files = [
+  "main.ml" ]
+  requires = [ "ocp-fix-errors-lib" ]
+end

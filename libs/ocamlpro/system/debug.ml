@@ -84,7 +84,7 @@ end) : S = struct
 
   let fdebugln f =
     match X.debug_channel () with
-      | Some c -> 
+      | Some c ->
         Option.iter (pp_print_string debug_formatter) (X.prefix ());
         kfprintf (fun fmt -> pp_print_newline fmt () ; pp_print_flush fmt ())
           debug_formatter f

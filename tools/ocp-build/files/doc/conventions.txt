@@ -1,0 +1,91 @@
+**************************************************************************
+*                                                                        *
+*                        TypeRex OCaml Studio                            *
+*                                                                        *
+*                 Thomas Gazagnaire, Fabrice Le Fessant                  *
+*                                                                        *
+*  Copyright 2011-2012 OCamlPro                                          *
+*  All rights reserved.  This file is distributed under the terms of     *
+*  the GNU Public License version 3.0.                                   *
+*                                                                        *
+*  TypeRex is distributed in the hope that it will be useful,            *
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+*  GNU General Public License for more details.                          *
+*                                                                        *
+**************************************************************************
+
+ocp-build will scan your install directories looking for all the files
+(.cmi, .cmo, .cmx, .cmxa, .cma) that can be used to build new targets,
+either in the toplevel directory or an immediate sub-directory.
+
+It will try to put together files that are clearly relative (for
+example, all the .cmi and .cmx files associated with a .cmxa, or the
+.cma and .cmxa). Naming conventions are very important here (X.p.cmx
+is the profiling version of X.cmx, and X.d.cmxa the debugging version
+of X.cmxa). (has_byte_debug, has_asm_debug, has_asm_profile).
+
+Ambiguities:
+============
+
+- there might be several sets with the same name. Each set is identified by
+its relative directory.
+
+begin "unix"
+  dirname = "ocamlduce/unix"
+  generated = [
+   "unix.cma" "unix.cma" "unix.a" unix.cmi" "unix.cmx"
+ ]
+ requires = [ "stdlib" ]
+end
+
+If the same library appears several times in different directories,
+ocp-build will complain.  You must fix such problems by either editing
+the associated file or creating another file containing:
+
+begin "unix"
+  dirname = ".../ocamlduce/unix"
+  provides "ocamlduce:unix"
+end
+
+If the same object file is provided by several different libraries,
+ocp-build will not try to solve it. It will just remove the unresolved
+dependency. As a consequence, you MUST provide yourself the correct
+dependency when needed.
+
+You can also help ocp-build order the dependencies:
+
+order "unix" < "unix2" (these ones should be automatically added by
+                        ocp-build)
+
+So:
+1/ scan all the directories, keeping only files that are useful (for example, x.p.cmx can
+actually not be used by any compilation, no ?).
+2/ put together files that belong to
+
+
+Add many
+
+generated ".../toto.cmi" (* so that such files appear immediatly as generated *)
+
+One file is automatically generated, the other one is created once,
+and only modified by hand afterwards.
+
+What about installed toto.ocp files ?
+
+We should detect: changes in the tools that were used to
+build. Changing "ocamlc" means rebuilding everything. Should we use
+hashes of files or not ? For each file XXX.xxx to generate, we compute
+a hash of its dependencies. We compare thish hash with the content of
+the file XXX.xxx.hash, and if changed, we need to rebuild.
+
+===========================================================================================
+
+ocp-build -installed unix str
+
+---> generates ocp-installed.ocp
+---> generates ocp-installed-unix.ocp and ocp-installed-str.ocp
+
+ocp-build -get unix
+
+

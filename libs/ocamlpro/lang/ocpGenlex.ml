@@ -9,7 +9,7 @@
 (*  the GNU Public License version 3.0.                                   *)
 (*                                                                        *)
 (*  TypeRex is distributed in the hope that it will be useful,            *)
-(*  but WITHOUT ANY WARRANTY; without even the implied warranty of        *)
+(*  but WITHOUTo ANY WARRANTY; without even the implied warranty of        *)
 (*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *)
 (*  GNU General Public License for more details.                          *)
 (*                                                                        *)
@@ -39,7 +39,7 @@ let of_lines kws name ?(discard=fun _ -> false) lines =
   let lines = Array.of_list lines in
   let tokens = make_lexer kws raw in
   let last = "" in
-  { name; lines; raw; tokens; last }
+  { name = name; lines = lines; raw = raw; tokens = tokens; last = last }
 
 let string_of_token token =
   match token with

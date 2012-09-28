@@ -51,7 +51,9 @@ typedef int OS_SOCKET;
 #endif
 
 #include <sys/types.h>
+#ifdef HAS_SYS_TIME_H
 #include <sys/time.h>
+#endif
 
 #ifdef HAS_SYS_SELECT_H
 #include <sys/select.h>
@@ -73,7 +75,7 @@ typedef int OS_SOCKET;
 #include <string.h>
 #endif
 
-#if !defined(__MINGW32__)
+#if defined(HAS_SYS_MMAN_H)
 #include <sys/mman.h>
 #endif
 

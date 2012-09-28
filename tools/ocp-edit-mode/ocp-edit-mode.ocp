@@ -1,0 +1,20 @@
+
+(* shared as a library, because other tools, like 'ocp-complete'
+  may want to load 'ocp-edit-mode' configuration. *)
+begin library "ocplib-edit-mode"
+  files = [ "editOptions.ml" ]
+  requires = [ "ocplib-system" ]
+end
+
+begin program "ocp-edit-mode"
+
+  files = [
+        "editInstall.ml" (* installation *)
+         "editEmacs.ml" (* called from Emacs *)
+          "editConfig.ml" (* modification of configuration *)
+
+     "editMain.ml"
+     ]
+  requires = [ "ocplib-subcmd" "ocplib-edit-mode" ]
+
+end

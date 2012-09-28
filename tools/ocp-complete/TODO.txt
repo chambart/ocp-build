@@ -1,0 +1,4 @@
+
+- extract documentation from .mli files
+- read 'open M' statements in the file with the prefix, and search for
+    'M.prefix' instead of just prefix

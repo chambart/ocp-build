@@ -22,11 +22,11 @@ open OcpLang
 (* Filename management *)
 (****************************)
 
-
 type t = {
   file_basename : string;
   file_dir : t;
-  file_string : string;           (* The system filename, i.e. with system-specific separators *)
+  file_string : string;
+  (* The system filename, i.e. with system-specific separators *)
   file_partition : string;
 }
 
@@ -357,7 +357,7 @@ let string_of_channel ic =
   Buffer.contents b
 
 let string_of_file filename =
-  let ic = open_in filename in
+  let ic = open_in_bin filename in
   try
     let s = string_of_channel ic in
     close_in ic;
@@ -369,7 +369,7 @@ let string_of_file filename =
 
 
 let string_of_subfile filename pos len =
-  let ic = open_in filename in
+  let ic = open_in_bin filename in
   seek_in ic pos;
   if len = 0 then begin
     close_in ic;
@@ -437,7 +437,7 @@ let file_of_string filename str =
 *)
 
 let file_of_string filename str =
-  let oc = open_out filename in
+  let oc = open_out_bin filename in
   output_string oc str;
   close_out oc
 
@@ -550,7 +550,7 @@ module X = struct
 
   let iter f file =
     let s = ReentrantBuffers.get 32768 in
-    let ic = open_in file in
+    let ic = open_in_bin file in
     let rec iter f ic s =
       let nread = input ic s 0 32768 in
       if nread > 0 then begin

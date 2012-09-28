@@ -21,7 +21,7 @@
 open Bincompat
 
 let this_version = "3.12.0"
-  
+
 module CMI = struct
 
     open V3120_output_ast.AST
@@ -34,7 +34,7 @@ module CMI = struct
 end = struct
 
     open Ident
-      
+
   module T = V3120_types.Ident
   let tbl = Hashtbl.create 13
 
@@ -386,7 +386,7 @@ let output_cmi_file version =
 
 let output_cmi_file oc filename version cmi =
   if version <> this_version then
-    V3112_output_cmi.output_cmi_file oc filename version cmi     
+    V3112_output_cmi.output_cmi_file oc filename version cmi
   else begin
       output_string oc V3120_types.cmi_magic_number;
       output_value oc (cmi.cmi_name, CMI.Types.signature cmi.cmi_sign);
@@ -397,4 +397,3 @@ let output_cmi_file oc filename version cmi =
       output_value oc (List.map CMI.Cmi_format.pers_flags cmi.cmi_flags);
       crc
     end
-  

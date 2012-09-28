@@ -1,0 +1,4 @@
+
+begin library "ocplib-subcmd"
+  files = [ "subcommands.ml" ]
+end

@@ -22,11 +22,11 @@
     versions ("3.12" and "current"), as well as Camlp4 ASTs for
     version 3.12 only. *)
 
-exception Outdated_version
+(* exception Outdated_version *)
 
 (* can raise Outdated_version if the version is not recognized *)
-val read_interface : in_channel -> (string * Parsetree.signature) option
-val read_implementation : in_channel -> (string * Parsetree.structure) option
+val input_interface : string -> in_channel -> string * Parsetree.signature
+val input_implementation : string -> in_channel -> string * Parsetree.structure
 
 (*
 val write : ?version: Bincompat.version -> string -> t -> unit

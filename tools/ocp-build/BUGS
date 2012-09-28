@@ -1,0 +1,9 @@
+On all:
+in BuildEngine, atomic move has been replaced by remove + rename because
+rename does not work on Windows if target file exists.
+Consequently, rename is not atomic anymore, and might cause a problem
+if ocamlopt and ocamlc are run concurrently for the same file.
+
+On Windows:
+  '-ccopt' '' '-ccopt' ''
+  gives "unknown options -ccopt"

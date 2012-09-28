@@ -53,13 +53,13 @@ end
 module Loc = struct
 
         open Format
-          
+
         type pos = { line : int; bol : int; off : int }
-        
+
         type t =
           { file_name : string; start : pos; stop : pos; ghost : bool
           }
-        
+
         let dump_sel f x =
           let s =
             match x with
@@ -68,26 +68,26 @@ module Loc = struct
             | `both -> "`both"
             | _ -> "<not-printable>"
           in pp_print_string f s
-          
+
         let dump_pos f x =
           fprintf f "@[<hov 2>{ line = %d ;@ bol = %d ;@ off = %d } : pos@]"
             x.line x.bol x.off
-          
+
         let dump_long f x =
           fprintf f
             "@[<hov 2>{ file_name = %s ;@ start = %a (%d-%d);@ stop = %a (%d);@ ghost = %b@ } : Loc.t@]"
             x.file_name dump_pos x.start (x.start.off - x.start.bol)
             (x.stop.off - x.start.bol) dump_pos x.stop
             (x.stop.off - x.stop.bol) x.ghost
-          
+
         let dump f x =
           fprintf f "[%S: %d:%d-%d %d:%d%t]" x.file_name x.start.line
             (x.start.off - x.start.bol) (x.stop.off - x.start.bol)
             x.stop.line (x.stop.off - x.stop.bol)
             (fun o -> if x.ghost then fprintf o " (ghost)" else ())
-          
+
         let start_pos = { line = 1; bol = 0; off = 0; }
-          
+
         let ghost =
           {
             file_name = "ghost-location";
@@ -95,7 +95,7 @@ module Loc = struct
             stop = start_pos;
             ghost = true;
           }
-          
+
         let mk file_name =
           {
             file_name = file_name;
@@ -103,7 +103,7 @@ module Loc = struct
             stop = start_pos;
             ghost = false;
           }
-          
+
         let of_tuple (file_name, start_line, start_bol, start_off, stop_line,
                       stop_bol, stop_off, ghost)
                      =
@@ -113,7 +113,7 @@ module Loc = struct
             stop = { line = stop_line; bol = stop_bol; off = stop_off; };
             ghost = ghost;
           }
-          
+
         let to_tuple {
                        file_name = file_name;
                        start =
@@ -128,7 +128,7 @@ module Loc = struct
                      } =
           (file_name, start_line, start_bol, start_off, stop_line, stop_bol,
            stop_off, ghost)
-          
+
         let pos_of_lexing_position p =
           let pos =
             {
@@ -137,7 +137,7 @@ module Loc = struct
               off = p.Lexing.pos_cnum;
             }
           in pos
-          
+
         let pos_to_lexing_position p file_name =
           {
             Lexing.pos_fname = file_name;
@@ -145,7 +145,7 @@ module Loc = struct
             pos_bol = p.bol;
             pos_cnum = p.off;
           }
-          
+
         let better_file_name a b =
           match (a, b) with
           | ("", "") -> a
@@ -154,7 +154,7 @@ module Loc = struct
           | ("-", x) -> x
           | (x, "-") -> x
           | (x, _) -> x
-          
+
         let of_lexbuf lb =
           let start = Lexing.lexeme_start_p lb
           and stop = Lexing.lexeme_end_p lb in
@@ -167,7 +167,7 @@ module Loc = struct
               ghost = false;
             }
           in loc
-          
+
         let of_lexing_position pos =
           let loc =
             {
@@ -177,7 +177,7 @@ module Loc = struct
               ghost = false;
             }
           in loc
-          
+
         let to_ocaml_location x =
           {
             Location.loc_start =
@@ -185,7 +185,7 @@ module Loc = struct
             loc_end = pos_to_lexing_position x.stop x.file_name;
             loc_ghost = x.ghost;
           }
-          
+
         let of_ocaml_location {
                                 Location.loc_start = a;
                                 loc_end = b;
@@ -200,11 +200,11 @@ module Loc = struct
               ghost = g;
             }
           in res
-          
+
         let start_pos x = pos_to_lexing_position x.start x.file_name
-          
+
         let stop_pos x = pos_to_lexing_position x.stop x.file_name
-          
+
         let merge a b =
           if a == b
           then a
@@ -216,58 +216,58 @@ module Loc = struct
                | (true, _) -> { (a) with stop = b.stop; }
                | (_, true) -> { (b) with start = a.start; }
              in r)
-          
+
         let join x = { (x) with stop = x.start; }
-          
+
         let map f start_stop_both x =
           match start_stop_both with
           | `start -> { (x) with start = f x.start; }
           | `stop -> { (x) with stop = f x.stop; }
           | `both -> { (x) with start = f x.start; stop = f x.stop; }
-          
+
         let move_pos chars x = { (x) with off = x.off + chars; }
-          
+
         let move s chars x = map (move_pos chars) s x
-          
+
         let move_line lines x =
           let move_line_pos x =
             { (x) with line = x.line + lines; bol = x.off; }
           in map move_line_pos `both x
-          
+
         let shift width x =
           { (x) with start = x.stop; stop = move_pos width x.stop; }
-          
+
         let file_name x = x.file_name
-          
+
         let start_line x = x.start.line
-          
+
         let stop_line x = x.stop.line
-          
+
         let start_bol x = x.start.bol
-          
+
         let stop_bol x = x.stop.bol
-          
+
         let start_off x = x.start.off
-          
+
         let stop_off x = x.stop.off
-          
+
         let is_ghost x = x.ghost
-          
+
         let set_file_name s x = { (x) with file_name = s; }
-          
+
         let ghostify x = { (x) with ghost = true; }
-          
+
         let make_absolute x =
           let pwd = Sys.getcwd ()
           in
             if Filename.is_relative x.file_name
             then { (x) with file_name = Filename.concat pwd x.file_name; }
             else x
-          
+
         let strictly_before x y =
           let b = (x.stop.off < y.start.off) && (x.file_name = y.file_name)
           in b
-          
+
         let to_string x =
           let (a, b) = ((x.start), (x.stop)) in
           let res =
@@ -279,9 +279,9 @@ module Loc = struct
               sprintf "%s (end at line %d, character %d)" res x.stop.line
                 (b.off - b.bol)
             else res
-          
+
         let print out x = pp_print_string out (to_string x)
-          
+
         let check x msg =
           if
             ((start_line x) > (stop_line x)) ||
@@ -297,9 +297,9 @@ module Loc = struct
                print x;
              false)
           else true
-          
+
         exception Exc_located of t * exn
-          
+
 (* Tifn: removing this
         let _ =
           ErrorHandler.register
@@ -309,9 +309,9 @@ module Loc = struct
                    fprintf ppf "%a:@\n%a" print loc ErrorHandler.print exn
                | exn -> raise exn)
 *)
-          
+
         let name = ref "_loc"
-          
+
         let raise loc exc =
           match exc with
           | Exc_located (_, _) -> raise exc
@@ -802,45 +802,45 @@ module Ast = struct
           | CrAnt of loc * string
 
 end
-  include Ast              
+  include Ast
 
             external loc_of_ctyp : ctyp -> Loc.t = "%field0"
-              
+
             external loc_of_patt : patt -> Loc.t = "%field0"
-              
+
             external loc_of_expr : expr -> Loc.t = "%field0"
-              
+
             external loc_of_module_type : module_type -> Loc.t = "%field0"
-              
+
             external loc_of_module_expr : module_expr -> Loc.t = "%field0"
-              
+
             external loc_of_sig_item : sig_item -> Loc.t = "%field0"
-              
+
             external loc_of_str_item : str_item -> Loc.t = "%field0"
-              
+
             external loc_of_class_type : class_type -> Loc.t = "%field0"
-              
+
             external loc_of_class_sig_item : class_sig_item -> Loc.t =
               "%field0"
-              
+
             external loc_of_class_expr : class_expr -> Loc.t = "%field0"
-              
+
             external loc_of_class_str_item : class_str_item -> Loc.t =
               "%field0"
-              
+
             external loc_of_with_constr : with_constr -> Loc.t = "%field0"
-              
+
             external loc_of_binding : binding -> Loc.t = "%field0"
-              
+
             external loc_of_rec_binding : rec_binding -> Loc.t = "%field0"
-              
+
             external loc_of_module_binding : module_binding -> Loc.t =
               "%field0"
-              
+
             external loc_of_match_case : match_case -> Loc.t = "%field0"
-              
+
             external loc_of_ident : ident -> Loc.t = "%field0"
-              
+
             let ghost = Loc.ghost
 
             let rec is_module_longident =
@@ -850,7 +850,7 @@ end
                   (is_module_longident i1) && (is_module_longident i2)
               | Ast.IdUid (_, _) -> true
               | _ -> false
-              
+
             let ident_of_expr =
               let error () =
                 invalid_arg
@@ -870,7 +870,7 @@ end
                 | Ast.ExId (_, i) -> i
                 | Ast.ExApp (_, _, _) -> error ()
                 | t -> self t
-              
+
             let ident_of_ctyp =
               let error () =
                 invalid_arg "ident_of_ctyp: this type is not an identifier" in
@@ -883,7 +883,7 @@ end
                     if is_module_longident i then i else error ()
                 | _ -> error ()
               in function | Ast.TyId (_, i) -> i | t -> self t
-              
+
             let ident_of_patt =
               let error () =
                 invalid_arg
@@ -897,7 +897,7 @@ end
                     if is_module_longident i then i else error ()
                 | _ -> error ()
               in function | Ast.PaId (_, i) -> i | p -> self p
-              
+
             let rec is_irrefut_patt =
               function
               | Ast.PaId (_, (Ast.IdLid (_, _))) -> true
@@ -930,20 +930,20 @@ end
                   Ast.PaInt64 (_, _) | Ast.PaInt32 (_, _) | Ast.PaInt (_, _)
                   | Ast.PaChr (_, _) | Ast.PaTyp (_, _) | Ast.PaArr (_, _) |
                   Ast.PaAnt (_, _) -> false
-              
+
             let rec is_constructor =
               function
               | Ast.IdAcc (_, _, i) -> is_constructor i
               | Ast.IdUid (_, _) -> true
               | Ast.IdLid (_, _) | Ast.IdApp (_, _, _) -> false
               | Ast.IdAnt (_, _) -> assert false
-              
+
             let is_patt_constructor =
               function
               | Ast.PaId (_, i) -> is_constructor i
               | Ast.PaVrn (_, _) -> true
               | _ -> false
-              
+
             let rec is_expr_constructor =
               function
               | Ast.ExId (_, i) -> is_constructor i
@@ -951,7 +951,7 @@ end
                   (is_expr_constructor e1) && (is_expr_constructor e2)
               | Ast.ExVrn (_, _) -> true
               | _ -> false
-              
+
             let rec tyOr_of_list =
               function
               | [] -> Ast.TyNil ghost
@@ -959,7 +959,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_ctyp t
                   in Ast.TyOr (_loc, t, (tyOr_of_list ts))
-              
+
             let rec tyAnd_of_list =
               function
               | [] -> Ast.TyNil ghost
@@ -967,7 +967,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_ctyp t
                   in Ast.TyAnd (_loc, t, (tyAnd_of_list ts))
-              
+
             let rec tySem_of_list =
               function
               | [] -> Ast.TyNil ghost
@@ -975,7 +975,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_ctyp t
                   in Ast.TySem (_loc, t, (tySem_of_list ts))
-              
+
             let rec tyCom_of_list =
               function
               | [] -> Ast.TyNil ghost
@@ -983,7 +983,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_ctyp t
                   in Ast.TyCom (_loc, t, (tyCom_of_list ts))
-              
+
             let rec tyAmp_of_list =
               function
               | [] -> Ast.TyNil ghost
@@ -991,7 +991,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_ctyp t
                   in Ast.TyAmp (_loc, t, (tyAmp_of_list ts))
-              
+
             let rec tySta_of_list =
               function
               | [] -> Ast.TyNil ghost
@@ -999,7 +999,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_ctyp t
                   in Ast.TySta (_loc, t, (tySta_of_list ts))
-              
+
             let rec stSem_of_list =
               function
               | [] -> Ast.StNil ghost
@@ -1007,7 +1007,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_str_item t
                   in Ast.StSem (_loc, t, (stSem_of_list ts))
-              
+
             let rec sgSem_of_list =
               function
               | [] -> Ast.SgNil ghost
@@ -1015,7 +1015,7 @@ end
               | t :: ts ->
                   let _loc = loc_of_sig_item t
                   in Ast.SgSem (_loc, t, (sgSem_of_list ts))
-              
+
             let rec biAnd_of_list =
               function
               | [] -> Ast.BiNil ghost
@@ -1023,7 +1023,7 @@ end
               | b :: bs ->
                   let _loc = loc_of_binding b
                   in Ast.BiAnd (_loc, b, (biAnd_of_list bs))
-              
+
             let rec rbSem_of_list =
               function
               | [] -> Ast.RbNil ghost
@@ -1031,7 +1031,7 @@ end
               | b :: bs ->
                   let _loc = loc_of_rec_binding b
                   in Ast.RbSem (_loc, b, (rbSem_of_list bs))
-              
+
             let rec wcAnd_of_list =
               function
               | [] -> Ast.WcNil ghost
@@ -1039,7 +1039,7 @@ end
               | w :: ws ->
                   let _loc = loc_of_with_constr w
                   in Ast.WcAnd (_loc, w, (wcAnd_of_list ws))
-              
+
             let rec idAcc_of_list =
               function
               | [] -> assert false
@@ -1047,7 +1047,7 @@ end
               | i :: is ->
                   let _loc = loc_of_ident i
                   in Ast.IdAcc (_loc, i, (idAcc_of_list is))
-              
+
             let rec idApp_of_list =
               function
               | [] -> assert false
@@ -1055,7 +1055,7 @@ end
               | i :: is ->
                   let _loc = loc_of_ident i
                   in Ast.IdApp (_loc, i, (idApp_of_list is))
-              
+
             let rec mcOr_of_list =
               function
               | [] -> Ast.McNil ghost
@@ -1063,7 +1063,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_match_case x
                   in Ast.McOr (_loc, x, (mcOr_of_list xs))
-              
+
             let rec mbAnd_of_list =
               function
               | [] -> Ast.MbNil ghost
@@ -1071,7 +1071,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_module_binding x
                   in Ast.MbAnd (_loc, x, (mbAnd_of_list xs))
-              
+
             let rec meApp_of_list =
               function
               | [] -> assert false
@@ -1079,7 +1079,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_module_expr x
                   in Ast.MeApp (_loc, x, (meApp_of_list xs))
-              
+
             let rec ceAnd_of_list =
               function
               | [] -> Ast.CeNil ghost
@@ -1087,7 +1087,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_class_expr x
                   in Ast.CeAnd (_loc, x, (ceAnd_of_list xs))
-              
+
             let rec ctAnd_of_list =
               function
               | [] -> Ast.CtNil ghost
@@ -1095,7 +1095,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_class_type x
                   in Ast.CtAnd (_loc, x, (ctAnd_of_list xs))
-              
+
             let rec cgSem_of_list =
               function
               | [] -> Ast.CgNil ghost
@@ -1103,7 +1103,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_class_sig_item x
                   in Ast.CgSem (_loc, x, (cgSem_of_list xs))
-              
+
             let rec crSem_of_list =
               function
               | [] -> Ast.CrNil ghost
@@ -1111,7 +1111,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_class_str_item x
                   in Ast.CrSem (_loc, x, (crSem_of_list xs))
-              
+
             let rec paSem_of_list =
               function
               | [] -> Ast.PaNil ghost
@@ -1119,7 +1119,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_patt x
                   in Ast.PaSem (_loc, x, (paSem_of_list xs))
-              
+
             let rec paCom_of_list =
               function
               | [] -> Ast.PaNil ghost
@@ -1127,7 +1127,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_patt x
                   in Ast.PaCom (_loc, x, (paCom_of_list xs))
-              
+
             let rec exSem_of_list =
               function
               | [] -> Ast.ExNil ghost
@@ -1135,7 +1135,7 @@ end
               | x :: xs ->
                   let _loc = loc_of_expr x
                   in Ast.ExSem (_loc, x, (exSem_of_list xs))
-              
+
             let rec exCom_of_list =
               function
               | [] -> Ast.ExNil ghost
@@ -1143,14 +1143,14 @@ end
               | x :: xs ->
                   let _loc = loc_of_expr x
                   in Ast.ExCom (_loc, x, (exCom_of_list xs))
-              
+
             let ty_of_stl =
               function
               | (_loc, s, []) -> Ast.TyId (_loc, (Ast.IdUid (_loc, s)))
               | (_loc, s, tl) ->
                   Ast.TyOf (_loc, (Ast.TyId (_loc, (Ast.IdUid (_loc, s)))),
                     (tyAnd_of_list tl))
-              
+
             let ty_of_sbt =
               function
               | (_loc, s, true, t) ->
@@ -1159,41 +1159,41 @@ end
               | (_loc, s, false, t) ->
                   Ast.TyCol (_loc, (Ast.TyId (_loc, (Ast.IdLid (_loc, s)))),
                     t)
-              
+
             let bi_of_pe (p, e) =
               let _loc = loc_of_patt p in Ast.BiEq (_loc, p, e)
-              
+
             let sum_type_of_list l = tyOr_of_list (List.map ty_of_stl l)
-              
+
             let record_type_of_list l = tySem_of_list (List.map ty_of_sbt l)
-              
+
             let binding_of_pel l = biAnd_of_list (List.map bi_of_pe l)
-              
+
             let rec pel_of_binding =
               function
               | Ast.BiAnd (_, b1, b2) ->
                   (pel_of_binding b1) @ (pel_of_binding b2)
               | Ast.BiEq (_, p, e) -> [ (p, e) ]
               | _ -> assert false
-              
+
             let rec list_of_binding x acc =
               match x with
               | Ast.BiAnd (_, b1, b2) ->
                   list_of_binding b1 (list_of_binding b2 acc)
               | t -> t :: acc
-              
+
             let rec list_of_rec_binding x acc =
               match x with
               | Ast.RbSem (_, b1, b2) ->
                   list_of_rec_binding b1 (list_of_rec_binding b2 acc)
               | t -> t :: acc
-              
+
             let rec list_of_with_constr x acc =
               match x with
               | Ast.WcAnd (_, w1, w2) ->
                   list_of_with_constr w1 (list_of_with_constr w2 acc)
               | t -> t :: acc
-              
+
             let rec list_of_ctyp x acc =
               match x with
               | Ast.TyNil _ -> acc
@@ -1202,86 +1202,86 @@ end
                   Ast.TyAnd (_, x, y) | Ast.TyOr (_, x, y) ->
                   list_of_ctyp x (list_of_ctyp y acc)
               | x -> x :: acc
-              
+
             let rec list_of_patt x acc =
               match x with
               | Ast.PaNil _ -> acc
               | Ast.PaCom (_, x, y) | Ast.PaSem (_, x, y) ->
                   list_of_patt x (list_of_patt y acc)
               | x -> x :: acc
-              
+
             let rec list_of_expr x acc =
               match x with
               | Ast.ExNil _ -> acc
               | Ast.ExCom (_, x, y) | Ast.ExSem (_, x, y) ->
                   list_of_expr x (list_of_expr y acc)
               | x -> x :: acc
-              
+
             let rec list_of_str_item x acc =
               match x with
               | Ast.StNil _ -> acc
               | Ast.StSem (_, x, y) ->
                   list_of_str_item x (list_of_str_item y acc)
               | x -> x :: acc
-              
+
             let rec list_of_sig_item x acc =
               match x with
               | Ast.SgNil _ -> acc
               | Ast.SgSem (_, x, y) ->
                   list_of_sig_item x (list_of_sig_item y acc)
               | x -> x :: acc
-              
+
             let rec list_of_class_sig_item x acc =
               match x with
               | Ast.CgNil _ -> acc
               | Ast.CgSem (_, x, y) ->
                   list_of_class_sig_item x (list_of_class_sig_item y acc)
               | x -> x :: acc
-              
+
             let rec list_of_class_str_item x acc =
               match x with
               | Ast.CrNil _ -> acc
               | Ast.CrSem (_, x, y) ->
                   list_of_class_str_item x (list_of_class_str_item y acc)
               | x -> x :: acc
-              
+
             let rec list_of_class_type x acc =
               match x with
               | Ast.CtAnd (_, x, y) ->
                   list_of_class_type x (list_of_class_type y acc)
               | x -> x :: acc
-              
+
             let rec list_of_class_expr x acc =
               match x with
               | Ast.CeAnd (_, x, y) ->
                   list_of_class_expr x (list_of_class_expr y acc)
               | x -> x :: acc
-              
+
             let rec list_of_module_expr x acc =
               match x with
               | Ast.MeApp (_, x, y) ->
                   list_of_module_expr x (list_of_module_expr y acc)
               | x -> x :: acc
-              
+
             let rec list_of_match_case x acc =
               match x with
               | Ast.McNil _ -> acc
               | Ast.McOr (_, x, y) ->
                   list_of_match_case x (list_of_match_case y acc)
               | x -> x :: acc
-              
+
             let rec list_of_ident x acc =
               match x with
               | Ast.IdAcc (_, x, y) | Ast.IdApp (_, x, y) ->
                   list_of_ident x (list_of_ident y acc)
               | x -> x :: acc
-              
+
             let rec list_of_module_binding x acc =
               match x with
               | Ast.MbAnd (_, x, y) ->
                   list_of_module_binding x (list_of_module_binding y acc)
               | x -> x :: acc
-  
+
  end
 
     type quotation =
@@ -1311,15 +1311,15 @@ end
       | LINE_DIRECTIVE of int * string option
       | EOI
 
-(*    
+(*
     module type Camlp4Token = Token with type t = camlp4_token
 *)
     module Token = struct
         open Format
             type t = camlp4_token
-            
+
             type token = t
-            
+
             let to_string =
               function
               | KEYWORD s -> sprintf "KEYWORD %S" s
@@ -1348,12 +1348,12 @@ end
               | LINE_DIRECTIVE (i, None) -> sprintf "LINE_DIRECTIVE %d" i
               | LINE_DIRECTIVE (i, (Some s)) ->
                   sprintf "LINE_DIRECTIVE %d %S" i s
-              
+
             let print ppf x = pp_print_string ppf (to_string x)
-              
+
             let match_keyword kwd =
               function | KEYWORD kwd' when kwd = kwd' -> true | _ -> false
-              
+
             let extract_string =
               function
               | KEYWORD s | SYMBOL s | LIDENT s | UIDENT s | INT (_, s) |
@@ -1364,7 +1364,7 @@ end
                   invalid_arg
                     ("Cannot extract a string from this token: " ^
                        (to_string tok))
-              
+
             module Error =
               struct
                 type t =
@@ -1372,9 +1372,9 @@ end
                   | Keyword_as_label of string
                   | Illegal_token_pattern of string * string
                   | Illegal_constructor of string
-                
+
                 exception E of t
-                  
+
                 let print ppf =
                   function
                   | Illegal_token s -> fprintf ppf "Illegal token (%s)" s
@@ -1386,35 +1386,35 @@ end
                       fprintf ppf "Illegal token pattern: %s %S" p_con p_prm
                   | Illegal_constructor con ->
                       fprintf ppf "Illegal constructor %S" con
-                  
+
                 let to_string x =
                   let b = Buffer.create 50 in
                   let () = bprintf b "%a" print x in Buffer.contents b
-                  
+
               end
 
-(*              
+(*
             let _ = let module M = ErrorHandler.Register(Error) in ()
 *)
 
-(*              
+(*
             module Filter =
               struct
                 type token_filter = (t, Loc.t) stream_filter
-                
+
                 type t =
                   { is_kwd : string -> bool; mutable filter : token_filter
                   }
-                
+
                 let err error loc =
                   raise (Loc.Exc_located (loc, (Error.E error)))
-                  
+
                 let keyword_conversion tok is_kwd =
                   match tok with
                   | SYMBOL s | LIDENT s | UIDENT s when is_kwd s -> KEYWORD s
                   | ESCAPED_IDENT s -> LIDENT s
                   | _ -> tok
-                  
+
                 let check_keyword_as_label tok loc is_kwd =
                   let s =
                     match tok with | LABEL s -> s | OPTLABEL s -> s | _ -> ""
@@ -1422,20 +1422,20 @@ end
                     if (s <> "") && (is_kwd s)
                     then err (Error.Keyword_as_label s) loc
                     else ()
-                  
+
                 let check_unknown_keywords tok loc =
                   match tok with
                   | SYMBOL s -> err (Error.Illegal_token s) loc
                   | _ -> ()
-                  
+
                 let error_no_respect_rules p_con p_prm =
                   raise
                     (Error.E (Error.Illegal_token_pattern (p_con, p_prm)))
-                  
+
                 let check_keyword _ = true
-                  
+
                 let error_on_unknown_keywords = ref false
-                  
+
                 let rec ignore_layout (__strm : _ Stream.t) =
                   match Stream.peek __strm with
                   | Some
@@ -1450,9 +1450,9 @@ end
                          Stream.icons x
                            (Stream.slazy (fun _ -> ignore_layout s)))
                   | _ -> Stream.sempty
-                  
+
                 let mk is_kwd = { is_kwd = is_kwd; filter = ignore_layout; }
-                  
+
                 let filter x =
                   let f tok loc =
                     let tok = keyword_conversion tok x.is_kwd
@@ -1480,41 +1480,41 @@ end
                            Stream.icons x (Stream.slazy (fun _ -> tracer xs)))
                     | _ -> Stream.sempty
                   in fun strm -> tracer (x.filter (filter strm))
-                  
+
                 let define_filter x f = x.filter <- f x.filter
-                  
+
                 let keyword_added _ _ _ = ()
-                  
+
                 let keyword_removed _ _ = ()
-                  
+
               end
 *)
         module Eval =
           struct
             let valch x = (Char.code x) - (Char.code '0')
-              
+
             let valch_hex x =
               let d = Char.code x
               in
                 if d >= 97
                 then d - 87
                 else if d >= 65 then d - 55 else d - 48
-              
+
             let rec skip_indent (__strm : _ Stream.t) =
               match Stream.peek __strm with
               | Some (' ' | '\t') -> (Stream.junk __strm; skip_indent __strm)
               | _ -> ()
-              
+
             let skip_opt_linefeed (__strm : _ Stream.t) =
               match Stream.peek __strm with
               | Some '\010' -> (Stream.junk __strm; ())
               | _ -> ()
-              
+
             let chr c =
               if (c < 0) || (c > 255)
               then failwith "invalid char token"
               else Char.chr c
-              
+
             let rec backslash (__strm : _ Stream.t) =
               match Stream.peek __strm with
               | Some '\010' -> (Stream.junk __strm; '\010')
@@ -1554,7 +1554,7 @@ end
                           | _ -> raise (Stream.Error "")))
                     | _ -> raise (Stream.Error "")))
               | _ -> raise Stream.Failure
-              
+
             let rec backslash_in_string strict store (__strm : _ Stream.t) =
               match Stream.peek __strm with
               | Some '\010' -> (Stream.junk __strm; skip_indent __strm)
@@ -1571,7 +1571,7 @@ end
                         | Some c when not strict ->
                             (Stream.junk __strm; store '\\'; store c)
                         | _ -> failwith "invalid string token"))
-              
+
             let char s =
               if (String.length s) = 1
               then s.[0]
@@ -1587,7 +1587,7 @@ end
                           (try backslash __strm
                            with | Stream.Failure -> raise (Stream.Error "")))
                      | _ -> failwith "invalid char token")
-              
+
             let string ?strict s =
               let buf = Buffer.create 23 in
               let store = Buffer.add_char buf in
@@ -1604,10 +1604,10 @@ end
                      let s = __strm in (store c; parse s))
                 | _ -> Buffer.contents buf
               in parse (Stream.of_string s)
-              
+
           end
 
-end              
+end
 
 module Camlp4Ast2OCamlAst : sig
   open Ast
@@ -1621,27 +1621,27 @@ module Camlp4Ast2OCamlAst : sig
 end = struct
 
             open Format
-              
+
             open Parsetree
-              
+
             open Longident
-              
+
             open Asttypes
-              
+
             open Ast
-              
+
             let constructors_arity () = !Camlp4_config.constructors_arity
-              
+
             let error loc str = Loc.raise loc (Failure str)
-              
+
             let char_of_char_token loc s =
               try Token.Eval.char s
               with | (Failure _ as exn) -> Loc.raise loc exn
-              
+
             let string_of_string_token loc s =
               try Token.Eval.string s
               with | (Failure _ as exn) -> Loc.raise loc exn
-              
+
             let remove_underscores s =
               let l = String.length s in
               let rec remove src dst =
@@ -1652,58 +1652,58 @@ end = struct
                    | '_' -> remove (src + 1) dst
                    | c -> (s.[dst] <- c; remove (src + 1) (dst + 1)))
               in remove 0 0
-              
+
             let mkloc = Loc.to_ocaml_location
 
             let with_loc txt loc = Location.mkloc txt (mkloc loc)
-              
+
             let mkghloc loc = Loc.to_ocaml_location (Loc.ghostify loc)
-              
+
             let mktyp loc d = { ptyp_desc = d; ptyp_loc = mkloc loc; }
-              
+
             let mkpat loc d = { ppat_desc = d; ppat_loc = mkloc loc; }
-              
+
             let mkghpat loc d = { ppat_desc = d; ppat_loc = mkghloc loc; }
-              
+
             let mkexp loc d = { pexp_desc = d; pexp_loc = mkloc loc; }
-              
+
             let mkmty loc d = { pmty_desc = d; pmty_loc = mkloc loc; }
-              
+
             let mksig loc d = { psig_desc = d; psig_loc = mkloc loc; }
-              
+
             let mkmod loc d = { pmod_desc = d; pmod_loc = mkloc loc; }
-              
+
             let mkstr loc d = { pstr_desc = d; pstr_loc = mkloc loc; }
-              
+
             let mkfield loc d = { pfield_desc = d; pfield_loc = mkloc loc; }
-              
+
             let mkcty loc d = { pcty_desc = d; pcty_loc = mkloc loc; }
-              
+
             let mkpcl loc d = { pcl_desc = d; pcl_loc = mkloc loc; }
-              
+
             let mkpolytype t =
               match t.ptyp_desc with
               | Ptyp_poly (_, _) -> t
               | _ -> { (t) with ptyp_desc = Ptyp_poly ([], t); }
-              
+
             let mkvirtual =
               function
               | Ast.ViVirtual -> Virtual
               | Ast.ViNil -> Concrete
               | _ -> assert false
-              
+
             let mkdirection =
               function
               | Ast.DiTo -> Upto
               | Ast.DiDownto -> Downto
               | _ -> assert false
-              
+
             let lident loc s = with_loc (Lident s) loc
-              
+
             let ldot l s = Ldot (l, s)
-              
+
             let lapply l s = Lapply (l, s)
-              
+
             let conv_con =
               let t = Hashtbl.create 73
               in
@@ -1711,37 +1711,37 @@ end = struct
                    [ ("True", "true"); ("False", "false"); (" True", "True");
                      (" False", "False") ];
                  fun s -> try Hashtbl.find t s with | Not_found -> s)
-              
+
             let conv_lab =
               let t = Hashtbl.create 73
               in
                 (List.iter (fun (s, s') -> Hashtbl.add t s s')
                    [ ("val", "contents") ];
                  fun s -> try Hashtbl.find t s with | Not_found -> s)
-              
+
             let array_function_noloc str name =
               ldot (Lident str)
                 (if !Camlp4_config.unsafe then "unsafe_" ^ name else name)
 
             let array_function loc str name =
               with_loc (array_function_noloc str name) loc
-                
+
             let mkrf =
               function
                 | Ast.ReRecursive -> Recursive
                 | Ast.ReNil -> Nonrecursive
                 | _ -> assert false
-                  
+
             let mkli loc s x =
               let rec loop f =
                 function | i :: il -> loop (ldot (f i)) il | [] -> f s
               in with_loc (loop (function x -> Lident x) x) loc
-              
+
             let rec ctyp_fa al =
               function
                 | TyApp (_, f, a) -> ctyp_fa (a :: al) f
                 | f -> (f, al)
-                  
+
             let ident_tag ?(conv_lid = fun x -> x) i =
               let rec self i acc =
                 match i with
@@ -1774,7 +1774,7 @@ end = struct
                     in (x, `lident)
                   | _ -> error (loc_of_ident i) "invalid long identifier"
               in self i None
-              
+
             let ident_noloc ?conv_lid i = fst (ident_tag ?conv_lid i)
 
             let ident ?conv_lid loc i =
@@ -1784,11 +1784,11 @@ end = struct
               match ident_tag id with
                 | (i, `lident) -> with_loc i (loc_of_ident id)
                 | _ -> error (loc_of_ident id) msg
-                  
+
             let long_type_ident = long_lident "invalid long identifier type"
-              
+
             let long_class_ident = long_lident "invalid class name"
-              
+
             let long_uident_noloc ?(conv_con = fun x -> x) i =
               match ident_tag i with
                 | (Ldot (i, s), `uident) -> ldot i (conv_con s)
@@ -1798,7 +1798,7 @@ end = struct
 
             let long_uident ?conv_con loc i =
               with_loc (long_uident_noloc ?conv_con i) (loc_of_ident i)
-                
+
             let rec ctyp_long_id_prefix t =
               match t with
                 | Ast.TyId (_, i) -> ident_noloc i
@@ -1806,21 +1806,21 @@ end = struct
                   let li1 = ctyp_long_id_prefix m1 in
                   let li2 = ctyp_long_id_prefix m2 in Lapply (li1, li2)
                 | t -> error (loc_of_ctyp t) "invalid module expression"
-                  
+
             let ctyp_long_id t =
               match t with
                 | Ast.TyId (loc, i) -> (false, (long_type_ident loc i))
                 | TyApp (loc, _, _) -> error loc "invalid type name"
                 | TyCls (loc, i) -> (true, (ident loc i))
                 | t -> error (loc_of_ctyp t) "invalid type"
-                  
+
             let rec ty_var_list_of_ctyp =
               function
                 | Ast.TyApp (_, t1, t2) ->
                   (ty_var_list_of_ctyp t1) @ (ty_var_list_of_ctyp t2)
                 | Ast.TyQuo (_, s) -> [ s ]
                 | _ -> assert false
-                  
+
             let rec ctyp =
               function
                 | TyId (loc, i) ->
@@ -1944,7 +1944,7 @@ end = struct
                   ((long_uident loc i), (package_type_constraints wc []))
               | Ast.MtId (loc, i) -> ((long_uident loc i), [])
               | mt -> error (loc_of_module_type mt) "unexpected package type"
-              
+
             let mktype loc tl cl tk tp tm =
               let (params, variance) = List.split tl
               in
@@ -1957,15 +1957,15 @@ end = struct
                   ptype_loc = mkloc loc;
                   ptype_variance = variance;
                 }
-              
+
             let mkprivate' m = if m then Private else Public
-              
+
             let mkprivate =
               function
               | Ast.PrPrivate -> Private
               | Ast.PrNil -> Public
               | _ -> assert false
-              
+
             let mktrecord =
               function
               | Ast.TyCol (loc, (Ast.TyId (_, (Ast.IdLid (s_loc, s)))),
@@ -1975,7 +1975,7 @@ end = struct
                   (with_loc s s_loc, Immutable, (mkpolytype (ctyp t)),
                    (mkloc loc))
               | _ -> assert false
-              
+
             let mkvariant =
               function
               | Ast.TyId (loc, (Ast.IdUid (s_loc, s))) ->
@@ -1986,7 +1986,7 @@ end = struct
                    None,
                    (mkloc loc))
               | _ -> assert false
-              
+
             let rec type_decl tl cl loc m pflag =
               function
               | Ast.TyMan (_, t1, t2) ->
@@ -2010,25 +2010,25 @@ end = struct
                        | Ast.TyNil _ -> None
                        | _ -> Some (ctyp t)
                      in mktype loc tl cl Ptype_abstract (mkprivate' pflag) m)
-              
+
             let type_decl tl cl t =
               type_decl tl cl (loc_of_ctyp t) None false t
-              
+
             let mkvalue_desc loc t p =
               { pval_type = ctyp t; pval_prim = p; pval_loc = mkloc loc}
-              
+
             let rec list_of_meta_list =
               function
               | Ast.LNil -> []
               | Ast.LCons (x, xs) -> x :: (list_of_meta_list xs)
               | Ast.LAnt _ -> assert false
-              
+
             let mkmutable =
               function
               | Ast.MuMutable -> Mutable
               | Ast.MuNil -> Immutable
               | _ -> assert false
-              
+
             let paolab lab p =
               match (lab, p) with
               | ("",
@@ -2037,12 +2037,12 @@ end = struct
                   -> i
               | ("", p) -> error (loc_of_patt p) "bad ast in label"
               | _ -> lab
-              
+
             let opt_private_ctyp =
               function
               | Ast.TyPrv (_, t) -> (Ptype_abstract, Private, (ctyp t))
               | t -> (Ptype_abstract, Public, (ctyp t))
-              
+
             let rec type_parameters t acc =
               match t with
               | Ast.TyApp (_, t1, t2) ->
@@ -2054,7 +2054,7 @@ end = struct
               | Ast.TyQuo (loc, s) ->
                 (Some (with_loc s loc), (false, false)) :: acc
               | _ -> assert false
-              
+
             let rec class_parameters t acc =
               match t with
               | Ast.TyCom (_, t1, t2) ->
@@ -2063,14 +2063,14 @@ end = struct
               | Ast.TyQuM (loc, s) -> (with_loc s loc, (false, true)) :: acc
               | Ast.TyQuo (loc, s) -> (with_loc s loc, (false, false)) :: acc
               | _ -> assert false
-              
+
             let rec type_parameters_and_type_name t acc =
               match t with
               | Ast.TyApp (_, t1, t2) ->
                   type_parameters_and_type_name t1 (type_parameters t2 acc)
               | Ast.TyId (loc, i) -> ((ident loc i), acc)
               | _ -> assert false
-              
+
             let mkwithtyp pwith_type loc id_tpl ct =
               let (id, tpl) = type_parameters_and_type_name id_tpl [] in
               let (params, variance) = List.split tpl in
@@ -2087,7 +2087,7 @@ end = struct
                       ptype_loc = mkloc loc;
                       ptype_variance = variance;
                     }))
-              
+
             let rec mkwithc wc acc =
               match wc with
               | Ast.WcNil _ -> acc
@@ -2106,12 +2106,12 @@ end = struct
               | Ast.WcAnd (_, wc1, wc2) -> mkwithc wc1 (mkwithc wc2 acc)
               | Ast.WcAnt (loc, _) ->
                   error loc "bad with constraint (antiquotation)"
-              
+
             let rec patt_fa al =
               function
               | PaApp (_, f, a) -> patt_fa (a :: al) f
               | f -> (f, al)
-              
+
             let rec deep_mkrangepat loc c1 c2 =
               if c1 = c2
               then mkghpat loc (Ppat_constant (Const_char c1))
@@ -2119,7 +2119,7 @@ end = struct
                 mkghpat loc
                   (Ppat_or ((mkghpat loc (Ppat_constant (Const_char c1))),
                      (deep_mkrangepat loc (Char.chr ((Char.code c1) + 1)) c2)))
-              
+
             let rec mkrangepat loc c1 c2 =
               if c1 > c2
               then mkrangepat loc c2 c1
@@ -2131,7 +2131,7 @@ end = struct
                     (Ppat_or ((mkghpat loc (Ppat_constant (Const_char c1))),
                        (deep_mkrangepat loc (Char.chr ((Char.code c1) + 1))
                           c2)))
-              
+
             let rec patt =
               function
               | Ast.PaId (loc, (Ast.IdLid (s_loc, s))) ->
@@ -2272,17 +2272,17 @@ end = struct
               | Ast.PaEq (loc, i, p) ->
                   ((ident ~conv_lid: conv_lab loc i), (patt p))
               | p -> error (loc_of_patt p) "invalid pattern"
-              
+
             let rec expr_fa al =
               function
               | ExApp (_, f, a) -> expr_fa (a :: al) f
               | f -> (f, al)
-              
+
             let rec class_expr_fa al =
               function
               | CeApp (_, ce, a) -> class_expr_fa (a :: al) ce
               | ce -> (ce, al)
-              
+
             let rec sep_expr_acc l =
               function
               | ExAcc (_, e1, e2) -> sep_expr_acc (sep_expr_acc l e2) e1
@@ -2305,16 +2305,16 @@ end = struct
                         as i) -> Ast.ExId (_loc, i))
                   in sep_expr_acc l (normalize_acc i)
               | e -> ((loc_of_expr e), [], e) :: l
-              
+
             let override_flag loc =
               function
               | Ast.OvOverride -> Override
               | Ast.OvNil -> Fresh
               | _ -> error loc "antiquotation not allowed here"
-              
+
             let list_of_opt_ctyp ot acc =
               match ot with | Ast.TyNil _ -> acc | t -> list_of_ctyp t acc
-              
+
             let rec expr =
               function
               | Ast.ExAcc (loc, x, (Ast.ExId (_, (Ast.IdLid (_, "val"))))) ->
@@ -2751,11 +2751,14 @@ end = struct
               | Ast.MeTyc (loc, me, mt) ->
                   mkmod loc
                     (Pmod_constraint ((module_expr me), (module_type mt)))
-              | Ast.MePkg (loc, (Ast.ExTyc (_, e, (Ast.TyPkg (_, pt))))) ->
-assert false
-(*
-                  mkmod loc (Pmod_unpack ((expr e), (package_type pt)))
-*)
+              | Ast.MePkg (loc, (Ast.ExTyc (c_loc, e, (Ast.TyPkg (pt_loc, pt))))) ->
+                mkmod loc
+                  (Pmod_unpack
+                     (mkexp c_loc
+                        (Pexp_constraint
+                           (expr e,
+                            Some(mktyp pt_loc (Ptyp_package (package_type pt))),
+                            None))))
               | Ast.MePkg (loc, _) ->
                   error loc "(value expr) not supported yet"
               | Ast.MeAnt (loc, _) ->
@@ -3009,11 +3012,11 @@ assert false
                    pcf_loc =  (mkloc loc)} ::
                     l
               | CrAnt (_, _) -> assert false
-              
+
             let sig_item ast = sig_item ast []
-              
+
             let str_item ast = str_item ast []
-              
+
             let directive =
               function
               | Ast.ExNil _ -> Pdir_none
@@ -3022,7 +3025,7 @@ assert false
               | Ast.ExId (_, (Ast.IdUid (_, "True"))) -> Pdir_bool true
               | Ast.ExId (_, (Ast.IdUid (_, "False"))) -> Pdir_bool false
               | e -> Pdir_ident (ident_noloc (ident_of_expr e))
-              
+
             let phrase =
               function
               | StDir (_, d, dp) -> Ptop_dir (d, (directive dp))

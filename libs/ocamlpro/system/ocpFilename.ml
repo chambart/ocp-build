@@ -20,7 +20,7 @@ include Filename
 open OcpLang
 
 let (/) = concat
-    
+
 let get_extension filename =
   let filename = basename filename in
   try

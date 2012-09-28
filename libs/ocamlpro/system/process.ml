@@ -97,7 +97,7 @@ let run ?env ~name cmd args =
   let stdout = Printf.sprintf "%s.out" name in
   let stderr = Printf.sprintf "%s.err" name in
   let info   = Printf.sprintf "%s.info" name in
-  
+
   let env = match env with Some e -> e | None -> Unix.environment () in
 
   (* Write info file *)

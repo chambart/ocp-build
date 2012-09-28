@@ -23,18 +23,18 @@ open OcpLang
 let total_started = ref 0
 let total_passed = ref 0
 
-type status = 
-  | Pending 
-  | Success 
+type status =
+  | Pending
+  | Success
   | Failed
 
-type vt100 = 
+type vt100 =
   | Control of string
   | Data of string
 
 let length_of_vt100 sequence =
   let length = function
-    | Control _ -> 0 
+    | Control _ -> 0
     | Data x   -> String.length x in
   List.fold_left (+) 0 (List.map length sequence)
 
@@ -176,7 +176,7 @@ module Raw = struct
 
 end
 
-type test = 
+type test =
   | Test_case of (unit -> bool)
   | Test_group of string * test list
 

@@ -23,14 +23,14 @@ open Bincompat
 module CMX = struct
 
     module Debuginfo = struct
-        
+
         open Debuginfo
         module T =V3120_types.Debuginfo
-        
+
         let  kind k = match k with
             Dinfo_call -> T.Dinfo_call
           | Dinfo_raise -> T.Dinfo_raise
-              
+
         let t d = {
             T.dinfo_kind = kind d.dinfo_kind;
             dinfo_file = d.dinfo_file;
@@ -38,42 +38,42 @@ module CMX = struct
             dinfo_char_start = d.dinfo_char_start;
             dinfo_char_end = d.dinfo_char_end
           }
-          
+
       end
-    
+
     module Clambda : sig
-        
-        val value_approximation : 
+
+        val value_approximation :
           Clambda.value_approximation ->
           V3120_types.Clambda.value_approximation
-        
+
       end = struct
 
         open V3120_output_ast.AST
         open V3120_output_cmi.CMI
-        open V3120_output_cmo.CMO        
+        open V3120_output_cmo.CMO
 
         open Asttypes
-          
+
         open Clambda
         module T = V3120_types.Clambda
 
-          
+
         let function_label string = string
-          
+
         let rec ulambda u =
           match u with
             Uvar id -> T.Uvar (Ident.t id)
           | Uconst sc -> T.Uconst (Lambda.structured_constant sc)
           | Udirect_apply (l, list, d) ->
-              T.Udirect_apply (function_label l, List.map ulambda list, 
+              T.Udirect_apply (function_label l, List.map ulambda list,
                 Debuginfo.t d)
           | Ugeneric_apply (u, list, d) ->
               T.Ugeneric_apply (ulambda u, List.map ulambda list, Debuginfo.t d)
           | Uclosure (fs, env) ->
               T.Uclosure (List.map (fun (l, int, list, u) ->
                     (function_label l, int, List.map Ident.t list, ulambda u))
-                fs, 
+                fs,
                 List.map ulambda env)
           | Uoffset (u, int) -> T.Uoffset (ulambda u, int)
           | Ulet (id, u1, u2) -> T.Ulet (Ident.t id, ulambda u1, ulambda u2)
@@ -111,7 +111,7 @@ module CMX = struct
             us_actions_blocks = Array.map ulambda s.us_actions_blocks;
           }
 
-              
+
         let function_description fd =
           { T.fun_label = function_label fd.fun_label;
             fun_arity = fd.fun_arity;
@@ -122,7 +122,7 @@ module CMX = struct
                   Some (List.map Ident.t list, ulambda ul));
           }
 
-        let rec value_approximation v = 
+        let rec value_approximation v =
           match v with
             Value_closure (fd, va) ->
               T.Value_closure (function_description fd, value_approximation va)
@@ -133,23 +133,23 @@ module CMX = struct
           | Value_constptr int -> T.Value_constptr int
 
       end
-    
+
     module Cmx_format : sig
-        
-        val unit_infos : 
+
+        val unit_infos :
           Cmx_format.unit_infos ->
           V3120_types.Cmx_format.unit_infos
-        
-        val library_infos : 
+
+        val library_infos :
           Cmx_format.library_infos ->
           V3120_types.Cmx_format.library_infos
-        
+
       end = struct
 
         open Cmx_format
         module T = V3120_types.Cmx_format
-        
-        let unit_infos ui = 
+
+        let unit_infos ui =
           { T.ui_name = ui.ui_name;
             ui_symbol = ui.ui_symbol;
             ui_defines = ui.ui_defines;
@@ -162,7 +162,7 @@ module CMX = struct
             ui_force_link = ui.ui_force_link;
           }
 
-        let library_infos l = 
+        let library_infos l =
           { T.
             lib_units = List.map (fun (ui, crc) ->
                 unit_infos ui, crc) l.lib_units;
@@ -170,11 +170,11 @@ module CMX = struct
             lib_ccopts = l.lib_ccopts;
           }
       end
-    
+
   end
 
 let this_version = "3.12.0"
-      
+
 let output_cmx_file version =
   if version = this_version then
     (V3120_types.cmx_magic_number,
@@ -184,7 +184,7 @@ let output_cmx_file version =
           ))
   else
     V3112_output_cmx.output_cmx_file version
-      
+
 let output_cmxa_file version =
   if version = this_version then
     (V3120_types.cmxa_magic_number,
@@ -194,4 +194,3 @@ let output_cmxa_file version =
           ))
   else
     V3112_output_cmx.output_cmxa_file version
-

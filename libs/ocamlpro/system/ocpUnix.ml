@@ -170,4 +170,4 @@ let string_of_stdout fn =
   reset ()
 
 let modtime f =
-  Unix.((stat f).st_mtime)
+  (Unix.stat f).Unix.st_mtime

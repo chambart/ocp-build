@@ -261,20 +261,19 @@ module Cmo_format : sig
 end
 
 let this_version = "3.12.0"
-    
+
 let output_cmo_file version =
   if version = this_version then
-    V3120_types.cmo_magic_number,    
+    V3120_types.cmo_magic_number,
     (fun oc cmo ->
         output_value oc (CMO.Cmo_format.compilation_unit cmo))
   else
     V3112_output_cmo.output_cmo_file version
-        
+
 let output_cma_file version =
   if version = this_version then
-    V3120_types.cma_magic_number,    
+    V3120_types.cma_magic_number,
     (fun oc cma ->
         output_value oc (CMO.Cmo_format.library cma))
   else
     V3112_output_cmo.output_cma_file version
-    

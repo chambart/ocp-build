@@ -18,17 +18,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-let ctx = ref Ident.no_ctx
 let timestamp = ref 1000000
-
-let ident_create s =
-  (* Increase the stamp above all existing idents in the unit. *)
-  let current_time = Ident.current_time () in
-  Ident.set_current_time !timestamp;
-  let id = Ident.create_with_ctx !ctx s in
-  incr timestamp;
-  Ident.currentstamp := current_time;
-  id
+let ident_create = Ident.create
 
 open Bincompat
 
@@ -84,7 +75,8 @@ end = struct
       | T.Ptyp_package p -> Ptyp_package (package_type p)
 
   and package_type (l, list) =
-    (mknoloc l,List.map (fun (s,c) -> (mknoloc s, core_type c)) list)
+    (mknoloc l,List.map (fun (s,c) ->
+      (mknoloc (Longident.Lident s), core_type c)) list)
 
   and core_field_type c =
     { pfield_desc = core_field_desc c.T.pfield_desc;
@@ -159,7 +151,7 @@ end = struct
     *)
         | _ ->   expression_desc e.T.pexp_desc
     in
-    { pexp_desc; pexp_loc = e.T.pexp_loc  }
+    { pexp_desc = pexp_desc; pexp_loc = e.T.pexp_loc  }
 
   and expression_desc e =
     match e with
@@ -220,7 +212,15 @@ end = struct
       | T.Pexp_poly (e, o) -> Pexp_poly (expression e, option core_type o)
       | T.Pexp_object cl -> Pexp_object (class_structure cl)
       | T.Pexp_newtype (s, e) -> Pexp_newtype (s, expression e)
-      | T.Pexp_pack (m, p) -> assert false
+      | T.Pexp_pack (m, p) ->
+        Pexp_constraint (
+          { pexp_desc = Pexp_pack (module_expr m);
+            pexp_loc = m.T.pmod_loc},
+          Some {
+            ptyp_desc = Ptyp_package (package_type p);
+            ptyp_loc = Location.none},
+          None
+        )
       | T.Pexp_open (l, e) -> Pexp_open (mknoloc l, expression e)
 
   and value_description v =
@@ -285,7 +285,7 @@ end = struct
       | T.Pctf_cstr (c1, c2, l) ->
         Pctf_cstr (core_type c1, core_type c2), l
     in
-    { pctf_desc ; pctf_loc }
+    { pctf_desc = pctf_desc; pctf_loc = pctf_loc }
 
 and class_description c = class_infos class_type c
 
@@ -333,11 +333,10 @@ and class_field c =
   | T.Pcf_cstr (c1, c2, loc) ->
       Pcf_constr (core_type c1, core_type c2), loc
   | T.Pcf_let  (r, list, loc) ->
-      Pcf_let ( rec_flag r, List.map (fun (pat, e)  ->
-            (pattern pat, expression e)) list), loc
+    raise (Bincompat.Error (Bincompat.IncompatibleVersionFeature "Pcf_let"))
   | T.Pcf_init e -> Pcf_init (expression e), Location.none
   in
-  { pcf_desc; pcf_loc }
+  { pcf_desc = pcf_desc; pcf_loc = pcf_loc }
 
 and class_declaration list = class_infos class_expr list
 
@@ -408,7 +407,7 @@ and module_expr me =
               ))
           pmod_loc) *)
     | me ->  module_expr_desc me in
-  { pmod_desc; pmod_loc }
+  { pmod_desc = pmod_desc; pmod_loc = pmod_loc }
 
 and module_expr_desc me =
   match me with
@@ -418,7 +417,18 @@ and module_expr_desc me =
       Pmod_functor (mknoloc s, module_type mt, module_expr me)
   | T.Pmod_apply (me1, me2) -> Pmod_apply (module_expr me1, module_expr me2)
   | T.Pmod_constraint (me, mt) -> Pmod_constraint (module_expr me, module_type mt)
-  | T.Pmod_unpack (e, p) -> assert false
+  | T.Pmod_unpack (e, p) ->
+    Pmod_unpack {
+      pexp_loc = e.T.pexp_loc;
+      pexp_desc =
+        Pexp_constraint
+          (expression e,
+           Some {
+             ptyp_loc = Location.none;
+             ptyp_desc = (Ptyp_package (package_type p))
+           },
+           None)
+    }
 
 and structure list = List.map structure_item list
 
@@ -490,11 +500,6 @@ end = struct
       stamp = id.T.stamp;
       name = id.T.name;
       flags = id.T.flags;
-      ctx =
-        if id.T.stamp = 0 then
-          Ident.persistent_ctx
-        else
-          !ctx
     }
 
 (*
@@ -626,6 +631,7 @@ module TYPES : sig
       | T.Tunivar -> Tunivar None
       | T.Tpoly (t, list) -> Tpoly (type_expr t, List.map type_expr list)
       | T.Tpackage (p, sl, tl) ->
+        let sl = List.map (fun s -> Longident.Lident s) sl in
           Tpackage (PATH.t p, sl, List.map type_expr tl)
 
 
@@ -695,7 +701,9 @@ module TYPES : sig
 
     and value_description v =
       { val_type = type_expr v.T.val_type;
-        val_kind = value_kind v.T.val_kind; }
+        val_kind = value_kind v.T.val_kind;
+        val_loc = Location.none;
+      }
 
     and value_kind v =
       match v with
@@ -730,6 +738,7 @@ module TYPES : sig
             None -> None | Some t -> Some (type_expr t));
         type_variance = decl.T.type_variance;
         type_newtype_level = None;
+        type_loc = Location.none;
       }
 
     and type_kind t =
@@ -748,7 +757,8 @@ module TYPES : sig
       | T.Record_float -> Record_float
 
     and exception_declaration list =
-      List.map type_expr list
+     { exn_args = List.map type_expr list;
+       exn_loc = Location.none }
 
     and module_type decl =
       match decl with
@@ -850,16 +860,12 @@ let input_cmi_file ic magic =
 let input_cmi ic =
   let (cmi_name, cmi_sign) =
     (input_value ic : string *  V3120_types.Types.signature_item list) in
-  ctx := {
-    Ident.modname = cmi_name;
-    Ident.kind = `interface;
-    Ident.source_digest = "" (* stub *)
-  };
   TYPES.reset ();
   let cmi_sign = TYPES.signature cmi_sign in
   let cmi_crcs = (input_value ic : (string * Digest.t) list) in
   let cmi_flags = (input_value ic : V3120_types.Env.pers_flags list) in
-  { Env.cmi_name ; cmi_sign; cmi_crcs; cmi_flags }
+  { Cmi_format.cmi_name = cmi_name ; cmi_sign = cmi_sign;
+    cmi_crcs = cmi_crcs; cmi_flags = cmi_flags }
 
 let input_ast_intf ic =
   let input_name = (input_value ic : string) in

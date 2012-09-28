@@ -1,0 +1,4 @@
+win32_broadcast_setting_change_ml
+win32_delete_registry_value_ml
+win32_write_registry_value_ml
+win32_read_registry_value_ml

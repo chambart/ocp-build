@@ -619,7 +619,7 @@ module Env = struct
 
   open Types
 
-  type pers_flags = Env.pers_flags = Rectypes
+  type pers_flags = Cmi_format.pers_flags = Rectypes
 
 end
 

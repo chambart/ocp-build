@@ -23,14 +23,14 @@ open Bincompat
 module CMX = struct
 
     module Debuginfo = struct
-        
+
         open Debuginfo
         module T =V3120_types.Debuginfo
-        
+
         let  kind k = match k with
             T.Dinfo_call -> Dinfo_call
           | T.Dinfo_raise -> Dinfo_raise
-              
+
         let t d = {
             dinfo_kind = kind d.T.dinfo_kind;
             dinfo_file = d.T.dinfo_file;
@@ -38,42 +38,42 @@ module CMX = struct
             dinfo_char_start = d.T.dinfo_char_start;
             dinfo_char_end = d.T.dinfo_char_end
           }
-          
+
       end
-    
+
     module Clambda : sig
-        
-        val value_approximation : 
+
+        val value_approximation :
           V3120_types.Clambda.value_approximation ->
           Clambda.value_approximation
-        
+
       end = struct
 
         open V3120_input_ast.AST
         open V3120_input_cmi.CMI
-        open V3120_input_cmo.CMO        
+        open V3120_input_cmo.CMO
 
         open Asttypes
-          
+
         open Clambda
         module T = V3120_types.Clambda
 
-          
+
         let function_label string = string
-          
+
         let rec ulambda u =
           match u with
             T.Uvar id -> Uvar (Ident.t id)
           | T.Uconst sc -> Uconst (Lambda.structured_constant sc)
           | T.Udirect_apply (l, list, d) ->
-              Udirect_apply (function_label l, List.map ulambda list, 
+              Udirect_apply (function_label l, List.map ulambda list,
                 Debuginfo.t d)
           | T.Ugeneric_apply (u, list, d) ->
               Ugeneric_apply (ulambda u, List.map ulambda list, Debuginfo.t d)
           | T.Uclosure (fs, env) ->
               Uclosure (List.map (fun (l, int, list, u) ->
                     (function_label l, int, List.map Ident.t list, ulambda u))
-                fs, 
+                fs,
                 List.map ulambda env)
           | T.Uoffset (u, int) -> Uoffset (ulambda u, int)
           | T.Ulet (id, u1, u2) -> Ulet (Ident.t id, ulambda u1, ulambda u2)
@@ -111,7 +111,7 @@ module CMX = struct
             us_actions_blocks = Array.map ulambda s.T.us_actions_blocks;
           }
 
-              
+
         let function_description fd =
           { fun_label = function_label fd.T.fun_label;
             fun_arity = fd.T.fun_arity;
@@ -122,7 +122,7 @@ module CMX = struct
                   Some (List.map Ident.t list, ulambda ul));
           }
 
-        let rec value_approximation v = 
+        let rec value_approximation v =
           match v with
             T.Value_closure (fd, va) ->
               Value_closure (function_description fd, value_approximation va)
@@ -133,23 +133,23 @@ module CMX = struct
           | T.Value_constptr int -> Value_constptr int
 
       end
-    
+
     module Cmx_format : sig
-        
-        val unit_infos : 
+
+        val unit_infos :
           V3120_types.Cmx_format.unit_infos ->
           Cmx_format.unit_infos
-        
-        val library_infos : 
+
+        val library_infos :
           V3120_types.Cmx_format.library_infos ->
           Cmx_format.library_infos
-        
+
       end = struct
 
         open Cmx_format
         module T = V3120_types.Cmx_format
-        
-        let unit_infos ui = 
+
+        let unit_infos ui =
           { ui_name = ui.T.ui_name;
             ui_symbol = ui.T.ui_symbol;
             ui_defines = ui.T.ui_defines;
@@ -162,18 +162,18 @@ module CMX = struct
             ui_force_link = ui.T.ui_force_link;
           }
 
-        let library_infos l = 
-          { 
+        let library_infos l =
+          {
             lib_units = List.map (fun (ui, crc) ->
                 unit_infos ui, crc) l.T.lib_units;
             lib_ccobjs = l.T.lib_ccobjs;
             lib_ccopts = l.T.lib_ccopts;
           }
       end
-    
+
   end
 
-      
+
 let input_cmx_file ic magic =
   if magic = V3120_types.cmx_magic_number then
     let ui = (input_value ic : V3120_types.Cmx_format.unit_infos) in
@@ -181,10 +181,9 @@ let input_cmx_file ic magic =
   else
     V3112_input_cmx.input_cmx_file ic magic
 
-let input_cmxa_file ic magic = 
+let input_cmxa_file ic magic =
   if magic = V3120_types.cmxa_magic_number then
     let infos = (input_value ic : V3120_types.Cmx_format.library_infos) in
     CMX.Cmx_format.library_infos infos
   else
     V3112_input_cmx.input_cmxa_file ic magic
-

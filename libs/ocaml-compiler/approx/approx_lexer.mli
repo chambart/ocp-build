@@ -24,6 +24,7 @@ module Make(Tokens : Approx_tokens.Sig) : sig
 
   val init : unit -> unit
   val token : Lexing.lexbuf -> Tokens.token
+  val token_with_comments: Lexing.lexbuf -> Tokens.token
   val token_pos : Lexing.lexbuf -> Tokens.token * (int * int)
   val comments : unit -> (int * int) list
   val token_locs : Lexing.lexbuf ->
@@ -46,6 +47,7 @@ val string_of_token : token -> string
 
 val init : unit -> unit
 val token : Lexing.lexbuf -> token
+val token_with_comments: Lexing.lexbuf -> token
 val token_pos : Lexing.lexbuf -> token * (int * int)
 val comments : unit -> (int * int) list
 val token_locs : Lexing.lexbuf ->

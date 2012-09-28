@@ -22,7 +22,7 @@ type iso8601 = string
 let iso8601 () =
   let t = time () in
   let t = gmtime t in
-  Printf.sprintf 
+  Printf.sprintf
     "%04d%02d%02dT%02d:%02d:%02dZ"
     (1900 + t.tm_year)
     (1 + t.tm_mon)
@@ -38,7 +38,7 @@ type timestamp = string
 let timestamp () =
   let t = time () in
   let t = gmtime t in
-  Printf.sprintf 
+  Printf.sprintf
     "%04d%02d%02d%02d%02d%02d"
     (1900 + t.tm_year)
     (1 + t.tm_mon)

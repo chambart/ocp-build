@@ -18,17 +18,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-let ctx = ref Ident.no_ctx
 let timestamp = ref 1000000
-
-let ident_create s =
-  (* Increase the stamp above all existing idents in the unit. *)
-  let current_time = Ident.current_time () in
-  Ident.set_current_time !timestamp;
-  let id = Ident.create_with_ctx !ctx s in
-  incr timestamp;
-  Ident.currentstamp := current_time;
-  id
+let ident_create = Ident.create
 
 open Bincompat
 
@@ -158,7 +149,7 @@ end = struct
     *)
         | _ ->   expression_desc e.T.pexp_desc
     in
-    { pexp_desc; pexp_loc = e.T.pexp_loc  }
+    { pexp_desc = pexp_desc; pexp_loc = e.T.pexp_loc  }
 
   and expression_desc e =
     match e with
@@ -281,7 +272,7 @@ end = struct
       | T.Pctf_cstr (c1, c2, l) ->
         Pctf_cstr (core_type c1, core_type c2), l
     in
-    { pctf_desc ; pctf_loc }
+    { pctf_desc = pctf_desc ; pctf_loc = pctf_loc }
 
 and class_description c = class_infos class_type c
 
@@ -329,11 +320,11 @@ and class_field c =
   | T.Pcf_cstr (c1, c2, loc) ->
       Pcf_constr (core_type c1, core_type c2), loc
   | T.Pcf_let  (r, list, loc) ->
-      Pcf_let ( rec_flag r, List.map (fun (pat, e)  ->
-            (pattern pat, expression e)) list), loc
+    raise (Bincompat.Error (Bincompat.IncompatibleVersionFeature
+                             "Types.Pcf_let"))
   | T.Pcf_init e -> Pcf_init (expression e), Location.none
   in
-  { pcf_desc; pcf_loc }
+  { pcf_desc = pcf_desc; pcf_loc = pcf_loc }
 
 and class_declaration list = class_infos class_expr list
 
@@ -401,7 +392,7 @@ and module_expr me =
               ))
           pmod_loc) *)
     | me ->  module_expr_desc me in
-  { pmod_desc; pmod_loc }
+  { pmod_desc = pmod_desc; pmod_loc = pmod_loc }
 
 and module_expr_desc me =
   match me with
@@ -472,21 +463,21 @@ end = struct
   let reset () = Hashtbl.clear tbl
 *)
 
+  let last_builtin_timestamp = List.length Predef.builtin_idents
+
   let t id =
-    let predef = 0 < id.T.stamp && id.T.stamp < 1000 in
+    let predef = 0 < id.T.stamp && id.T.stamp <= last_builtin_timestamp in
     if predef then
       (* This works provided older versions only have a subset of the
          builtin idents of the current versions. *)
-      List.assoc id.T.name Predef.builtin_idents
+      try
+        List.assoc id.T.name Predef.builtin_idents
+      with Not_found ->
+        Printf.ksprintf failwith "predefined ident %s not found" id.T.name
     else {
       stamp = id.T.stamp;
       name = id.T.name;
       flags = id.T.flags;
-      ctx =
-        if id.T.stamp = 0 then
-          Ident.persistent_ctx
-        else
-          !ctx
     }
 
 (*
@@ -685,7 +676,9 @@ module TYPES : sig
 
     and value_description v =
       { val_type = type_expr v.T.val_type;
-        val_kind = value_kind v.T.val_kind; }
+        val_kind = value_kind v.T.val_kind;
+        val_loc = Location.none;
+      }
 
     and value_kind v =
       match v with
@@ -720,6 +713,7 @@ module TYPES : sig
             None -> None | Some t -> Some (type_expr t));
         type_variance = decl.T.type_variance;
         type_newtype_level = None;
+        type_loc = Location.none;
       }
 
     and type_kind t =
@@ -738,7 +732,8 @@ module TYPES : sig
       | T.Record_float -> Record_float
 
     and exception_declaration list =
-      List.map type_expr list
+      { exn_args = List.map type_expr list;
+        exn_loc = Location.none; }
 
     and module_type decl =
       match decl with
@@ -840,16 +835,12 @@ let input_cmi_file ic magic =
 let input_cmi ic =
   let (cmi_name, cmi_sign) =
     (input_value ic : string *  V3112_types.Types.signature_item list) in
-  ctx := {
-    Ident.modname = cmi_name;
-    Ident.kind = `interface;
-    Ident.source_digest = "" (* stub *)
-  };
-  TYPES.reset ();
+   TYPES.reset ();
   let cmi_sign = TYPES.signature cmi_sign in
   let cmi_crcs = (input_value ic : (string * Digest.t) list) in
   let cmi_flags = (input_value ic : V3112_types.Env.pers_flags list) in
-  { Env.cmi_name ; cmi_sign; cmi_crcs; cmi_flags }
+  { Cmi_format.cmi_name = cmi_name ; cmi_sign = cmi_sign;
+    cmi_crcs = cmi_crcs; cmi_flags = cmi_flags }
 
 let input_ast_intf ic =
   let input_name = (input_value ic : string) in

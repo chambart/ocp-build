@@ -37,89 +37,90 @@
 module Make(Tokens : Approx_tokens.Sig) = struct
 
   open Tokens
-open OcpLang
-open Lexing
-open Approx_common
+  open OcpLang
+  open Lexing
+  open Approx_common
 
-let comment_stack = ref []
-let lines_starts = ref []
+  let comment_stack = ref []
+  let lines_starts = ref []
 
-let init () =
-  comment_stack := [];
-  lines_starts := []
+  let init () =
+    comment_stack := [];
+    lines_starts := []
 
-let comments () =
-  List.rev !comment_stack
+  let comments () =
+    List.rev !comment_stack
 
 (* The table of keywords *)
 
-let create_hashtable n list =
-  let t = Hashtbl.create n in
-  List.iter (fun (x,y) -> Hashtbl.add t x y) list;
-  t
+  let create_hashtable n list =
+    let t = Hashtbl.create n in
+    List.iter (fun (x,y) -> Hashtbl.add t x y) list;
+    t
 
-let keyword_table =
-  create_hashtable 149 [
-    "and", AND;
-    "as", AS;
-    "assert", ASSERT;
-    "begin", BEGIN;
-    "class", CLASS;
-    "constraint", CONSTRAINT;
-    "do", DO;
-    "done", DONE;
-    "downto", DOWNTO;
-    "else", ELSE;
-    "end", END;
-    "exception", EXCEPTION;
-    "external", EXTERNAL;
-    "false", FALSE;
-    "for", FOR;
-    "fun", FUN;
-    "function", FUNCTION;
-    "functor", FUNCTOR;
-    "if", IF;
-    "in", IN;
-    "include", INCLUDE;
-    "inherit", INHERIT;
-    "initializer", INITIALIZER;
-    "lazy", LAZY;
-    "let", LET;
-    "match", MATCH;
-    "method", METHOD;
-    "module", MODULE;
-    "mutable", MUTABLE;
-    "new", NEW;
-    "object", OBJECT;
-    "of", OF;
-    "open", OPEN;
-    "or", OR;
-(*  "parser", PARSER; *)
-    "private", PRIVATE;
-    "rec", REC;
-    "sig", SIG;
-    "struct", STRUCT;
-    "then", THEN;
-    "to", TO;
-    "true", TRUE;
-    "try", TRY;
-    "type", TYPE;
-    "val", VAL;
-    "virtual", VIRTUAL;
-    "when", WHEN;
-    "while", WHILE;
-    "with", WITH;
+  let keyword_table =
+    create_hashtable 149 [
+      "and", AND;
+      "as", AS;
+      "assert", ASSERT;
+      "begin", BEGIN;
+      "class", CLASS;
+      "constraint", CONSTRAINT;
+      "do", DO;
+      "done", DONE;
+      "downto", DOWNTO;
+      "else", ELSE;
+      "end", END;
+      "exception", EXCEPTION;
+      "external", EXTERNAL;
+      "false", FALSE;
+      "for", FOR;
+      "fun", FUN;
+      "function", FUNCTION;
+      "functor", FUNCTOR;
+      "if", IF;
+      "in", IN;
+      "include", INCLUDE;
+      "inherit", INHERIT;
+      "initializer", INITIALIZER;
+      "lazy", LAZY;
+      "let", LET;
+      "match", MATCH;
+      "method", METHOD;
+      "module", MODULE;
+      "mutable", MUTABLE;
+      "new", NEW;
+      "object", OBJECT;
+      "of", OF;
+      "open", OPEN;
+      "or", OR;
+    (*  "parser", PARSER; *)
+      "private", PRIVATE;
+      "rec", REC;
+      "sig", SIG;
+      "struct", STRUCT;
+      "then", THEN;
+      "to", TO;
+      "true", TRUE;
+      "try", TRY;
+      "type", TYPE;
+      "val", VAL;
+      "virtual", VIRTUAL;
+      "when", WHEN;
+      "while", WHILE;
+      "with", WITH;
 
-    "mod", INFIXOP3("mod");
-    "land", INFIXOP3("land");
-    "lor", INFIXOP3("lor");
-    "lxor", INFIXOP3("lxor");
-    "lsl", INFIXOP4("lsl");
-    "lsr", INFIXOP4("lsr");
-    "asr", INFIXOP4("asr")
-]
+      "mod", INFIXOP3("mod");
+      "land", INFIXOP3("land");
+      "lor", INFIXOP3("lor");
+      "lxor", INFIXOP3("lxor");
+      "lsl", INFIXOP4("lsl");
+      "lsr", INFIXOP4("lsr");
+      "asr", INFIXOP4("asr")
+    ]
 
 (* To buffer string literals *)
+
 
 let initial_string_buffer = String.create 256
 let string_buff = ref initial_string_buffer
@@ -320,10 +321,9 @@ let float_literal =
           {
             let comment_start = lexbuf.lex_start_p in
             comment_start_loc := [Lexing.lexeme_start lexbuf];
-            let _ (*token*) = comment lexbuf in
+            let token= comment lexbuf in
             lexbuf.lex_start_p <- comment_start;
-            (* token *)
-            token lexbuf
+            token
           }
       | "*)"
           {
@@ -529,6 +529,8 @@ let float_literal =
               token,  ( lexbuf.lex_start_p, lexbuf.lex_curr_p)
 
           let get_token = token
+
+          let token_with_comments = get_token
 
           let rec token lexbuf =
             match get_token lexbuf with

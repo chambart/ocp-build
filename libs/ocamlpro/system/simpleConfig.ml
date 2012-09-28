@@ -878,8 +878,9 @@ let save opfile =
   let old_file =
     let old_file = File.add_suffix filename ".old" in
     let old_old_file = File.add_suffix old_file ".old" in
-    if not (File.X.exists old_file) && (File.X.exists old_old_file) then
-      Sys.rename (File.to_string old_old_file) (File.to_string old_file);
+    if File.X.exists old_old_file then Sys.remove (File.to_string old_old_file);
+    if File.X.exists old_file then
+      Sys.rename (File.to_string old_file) (File.to_string old_old_file);
     old_file in
   let oc = Buffer.create 1000 in
   (*  let oc = open_out temp_file in *)

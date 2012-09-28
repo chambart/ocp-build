@@ -18,6 +18,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
+(* same as 3.12.1 *)
 let exec_magic_number = "Caml1999X008"
 and cmi_magic_number = "Caml1999I012"
 and cmo_magic_number = "Caml1999O007"
@@ -633,7 +634,7 @@ module Annot = V3112_types.Annot
 
 module Env = struct
 
-  type pers_flags = Env.pers_flags = Rectypes
+  type pers_flags = Cmi_format.pers_flags = Rectypes
 
 end
 
