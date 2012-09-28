@@ -1,3 +1,16 @@
+(******************************************************************************)
+(*                                                                            *)
+(*                          TypeRex OCaml Tools                               *)
+(*                                                                            *)
+(*                               OCamlPro                                     *)
+(*                                                                            *)
+(*    Copyright 2011-2012 OCamlPro                                            *)
+(*    All rights reserved.  See accompanying files for the terms under        *)
+(*    which this file is distributed. In doubt, contact us at                 *)
+(*    contact@ocamlpro.com (http://www.ocamlpro.com/)                         *)
+(*                                                                            *)
+(******************************************************************************)
+
 (* This module implements a simple algorithm for substituting any
    string in any string. If several strings can be substituted at the
    same place, the one starting at the earliest position is chosen,

@@ -1,3 +1,16 @@
+(******************************************************************************)
+(*                                                                            *)
+(*                          TypeRex OCaml Tools                               *)
+(*                                                                            *)
+(*                               OCamlPro                                     *)
+(*                                                                            *)
+(*    Copyright 2011-2012 OCamlPro                                            *)
+(*    All rights reserved.  See accompanying files for the terms under        *)
+(*    which this file is distributed. In doubt, contact us at                 *)
+(*    contact@ocamlpro.com (http://www.ocamlpro.com/)                         *)
+(*                                                                            *)
+(******************************************************************************)
+
 (*
 TODO: currently, trying to fix several errors in the same file will
 fail, as the next errors have incorrect locations since we fixed the file.

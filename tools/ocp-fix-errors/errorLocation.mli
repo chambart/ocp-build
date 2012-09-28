@@ -1,3 +1,16 @@
+(******************************************************************************)
+(*                                                                            *)
+(*                          TypeRex OCaml Tools                               *)
+(*                                                                            *)
+(*                               OCamlPro                                     *)
+(*                                                                            *)
+(*    Copyright 2011-2012 OCamlPro                                            *)
+(*    All rights reserved.  See accompanying files for the terms under        *)
+(*    which this file is distributed. In doubt, contact us at                 *)
+(*    contact@ocamlpro.com (http://www.ocamlpro.com/)                         *)
+(*                                                                            *)
+(******************************************************************************)
+
 (* Tifn: we don't use this currently, because Edit takes care of
    multiple replacement. This could be an alternative to alignment
    with Diff, but only if we know that no other modifications happen

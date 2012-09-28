@@ -1,3 +1,16 @@
+(******************************************************************************)
+(*                                                                            *)
+(*                          TypeRex OCaml Tools                               *)
+(*                                                                            *)
+(*                               OCamlPro                                     *)
+(*                                                                            *)
+(*    Copyright 2011-2012 OCamlPro                                            *)
+(*    All rights reserved.  See accompanying files for the terms under        *)
+(*    which this file is distributed. In doubt, contact us at                 *)
+(*    contact@ocamlpro.com (http://www.ocamlpro.com/)                         *)
+(*                                                                            *)
+(******************************************************************************)
+
 (*
  -  Replace x.(_) by x.[_] when x is a string (Error)
  -  Replace x.[_] by x.[_] when x is a string (Error)

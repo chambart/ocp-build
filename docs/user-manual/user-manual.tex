@@ -4,28 +4,24 @@
 \usepackage{color}
 \usepackage{a4wide}
 \usepackage[colorlinks=true,linkcolor=blue] {hyperref}
-\usepackage{hevea}
+%\usepackage{hevea}
 \usepackage{url}
 
-\title{TypeRex user manual}
+\title{TypeRex User Manual}
 
-\author{OCamlPro}
-\date{\today\\
-\begin{latexonly}%
-\vspace{3cm}
-\end{latexonly}%
-This manual presents the usage of \typerex, a development
-environment and toolbox for OCaml developped by OCamlPro and Inria%
-\footnote{with support from the Campus Paris Saclay fundation}.
+\author{OCamlPro \and INRIA}
+\date{\today{}\\
+~\\
+This manual presents \typerex, a development
+environment for OCaml.
 }
 \begin{document}
 
-\input{typerex-config.tex}
 \newcommand{\typerex}{TypeRex}
 \newcommand{\cmd}[1]{$\texttt{#1}$}
-\begin{htmlonly}
-\renewcommand{\paragraph}[1]{{\bf #1}}
-\end{htmlonly}
+%\begin{htmlonly}
+%\renewcommand{\paragraph}[1]{{\bf #1}}
+%\end{htmlonly}
 
 %\newenvironment{code}{\footnotesize\verbatim}{\endverbatim}
 %\newenvironment{code}{\small\begin{verbatim}}{\end{verbatim}}
@@ -37,11 +33,11 @@ environment and toolbox for OCaml developped by OCamlPro and Inria%
 
 %BEGIN LATEX
 \maketitle
-\thispagestyle{empty}
-\cleardoublepage
+%\thispagestyle{empty}
+%\cleardoublepage
 %\thispagestyle{plain}
-\input{introduction}
-\newpage
+%\input{introduction}
+%\newpage
 \thispagestyle{empty}
 \tableofcontents
 %END LATEX
@@ -52,7 +48,7 @@ environment and toolbox for OCaml developped by OCamlPro and Inria%
 
 \input{../../tools/ocp-edit-mode/docs/user-manual}
 
-\chapter{ocp-build}
+\chapter{The {\tt ocp-build} build tool}
 
 \input{../../tools/ocp-build/docs/user-manual}
 

@@ -1,3 +1,16 @@
+(******************************************************************************)
+(*                                                                            *)
+(*                          TypeRex OCaml Tools                               *)
+(*                                                                            *)
+(*                               OCamlPro                                     *)
+(*                                                                            *)
+(*    Copyright 2011-2012 OCamlPro                                            *)
+(*    All rights reserved.  See accompanying files for the terms under        *)
+(*    which this file is distributed. In doubt, contact us at                 *)
+(*    contact@ocamlpro.com (http://www.ocamlpro.com/)                         *)
+(*                                                                            *)
+(******************************************************************************)
+
 (* When loading a file, Emacs should call "ocp-edit-mode config
    FILENAME.ml", and this command should return a list of commands to
    execute in return, that will be used to configure the file. *)
