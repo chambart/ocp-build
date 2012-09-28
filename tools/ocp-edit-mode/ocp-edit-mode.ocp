@@ -2,19 +2,28 @@
 (* shared as a library, because other tools, like 'ocp-complete'
   may want to load 'ocp-edit-mode' configuration. *)
 begin library "ocplib-edit-mode"
-  files = [ "editOptions.ml" ]
-  requires = [ "ocplib-system" ]
+
+  files = [
+       "editConfiguration.mlp" (ml = true
+             pp = [ "_obuild/ocp-subst-config/ocp-subst-config.byte" "-config-file" "typerex.config" ]
+    )
+         "editOptions.ml" ]
+  requires = [ "ocplib-system"  "ocp-subst-config" ]
+  pp_requires = [ "ocp-subst-config:byte" ]
 end
 
 begin program "ocp-edit-mode"
-
-  files = [
+    files = [
         "editInstall.ml" (* installation *)
-         "editEmacs.ml" (* called from Emacs *)
-          "editConfig.ml" (* modification of configuration *)
-
-     "editMain.ml"
+        "editEmacs.ml" (* called from Emacs *)
+        "editConfig.ml" (* modification of configuration *)
+        "editCandidates.ml"
+        "editDocumentation.ml"
+        "editMain.ml"
      ]
-  requires = [ "ocplib-subcmd" "ocplib-edit-mode" ]
+    requires = [ "ocplib-subcmd" "ocplib-edit-mode"
+                 "ocaml-approx" "ocplib-lang"
+                 "ocplib-system" "ocaml-bincompat"
+                 "ocaml-typing" "ocplib-project" ]
 
 end

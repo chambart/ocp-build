@@ -1,0 +1,6 @@
+
+DATADIR=@datarootdir@
+BINDIR=@bindir@
+LIBDIR=@libdir@
+MANDIR=@mandir@
+TYPEREXDIR=@datarootdir@/typerex

@@ -114,7 +114,7 @@ let find_in_obuild f prefix =
   match !target_filename with
     None -> ()
   | Some filename ->
-    CompMisc.find_obuild (fun dir ->
+    BuildOCP.find_obuild (fun dir ->
       let completion_dir = Filename.concat dir "_completions" in
       let s = Printf.sprintf "%c.txt" prefix.[0] in
       let filename = Filename.concat completion_dir s in
@@ -253,7 +253,7 @@ let find_labels prefix =
 let subcmd_main args =
   match args with
   | [| prefix |] ->
-    Printf.printf "(message \"ocp-complete candidates -infile %s %s\")\n"
+    Printf.printf "(message \"ocp-edit-mode candidates -infile %s %s\")\n"
       (match !target_filename with
         None -> "???" | Some filename -> filename) prefix;
 

@@ -122,16 +122,16 @@ let all_mode_hook mode filename =
     ]
     @
 [
-  "(local-set-key \"\C-c;\" 'ocamlspot-query)";
-  "(local-set-key \"\C-c:\" 'ocamlspot-query-interface)";
-  "(local-set-key \"\C-c'\" 'ocamlspot-query-uses)";
-  "(local-set-key \"\C-c\C-t\" 'ocamlspot-type)";
-  "(local-set-key \"\C-c\C-i\" 'ocamlspot-xtype)";
-  "(local-set-key \"\C-c\C-y\" 'ocamlspot-type-and-copy)";
-  "(local-set-key \"\C-cx\" 'ocamlspot-expand)";
-  "(local-set-key \"\C-c\C-u\" 'ocamlspot-use)";
-  "(local-set-key \"\C-ct\" 'caml-types-show-type)";
-  "(local-set-key \"\C-cp\" 'ocamlspot-pop-jump-stack)";
+  "(local-set-key \"\\C-c;\" 'ocamlspot-query)";
+  "(local-set-key \"\\C-c:\" 'ocamlspot-query-interface)";
+  "(local-set-key \"\\C-c'\" 'ocamlspot-query-uses)";
+  "(local-set-key \"\\C-c\\C-t\" 'ocamlspot-type)";
+  "(local-set-key \"\\C-c\\C-i\" 'ocamlspot-xtype)";
+  "(local-set-key \"\\C-c\\C-y\" 'ocamlspot-type-and-copy)";
+  "(local-set-key \"\\C-cx\" 'ocamlspot-expand)";
+  "(local-set-key \"\\C-c\\C-u\" 'ocamlspot-use)";
+  "(local-set-key \"\\C-ct\" 'caml-types-show-type)";
+  "(local-set-key \"\\C-cp\" 'ocamlspot-pop-jump-stack)";
 ]
       @
       [
@@ -152,7 +152,7 @@ let all_mode_hook mode filename =
       "      (with-temp-buffer ";
       "        (insert";
       "          (shell-command-to-string";
-      "            (concat \"ocp-complete candidates -infile \" ocp-local-name";
+      "            (concat \"ocp-edit-mode candidates -infile \" ocp-local-name";
       "              \" '\" ac-prefix \"'\")))";
       "        (eval-buffer))";
       "      result)";
@@ -165,7 +165,7 @@ let all_mode_hook mode filename =
       "      (with-temp-buffer ";
       "        (insert";
       "          (shell-command-to-string";
-      "            (concat \"ocp-complete documentation -infile \" ocp-local-name";
+      "            (concat \"ocp-edit-mode documentation -infile \" ocp-local-name";
       "              \" '\" candidate \"'\")))";
       "        (eval-buffer))";
       "      result)";

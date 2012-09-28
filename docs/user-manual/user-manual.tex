@@ -1,0 +1,59 @@
+\documentclass[12pt]{book}
+
+\usepackage{enumerate}
+\usepackage{color}
+\usepackage{a4wide}
+\usepackage[colorlinks=true,linkcolor=blue] {hyperref}
+\usepackage{hevea}
+\usepackage{url}
+
+\title{TypeRex user manual}
+
+\author{OCamlPro}
+\date{\today\\
+\begin{latexonly}%
+\vspace{3cm}
+\end{latexonly}%
+This manual presents the usage of \typerex, a development
+environment and toolbox for OCaml developped by OCamlPro and Inria%
+\footnote{with support from the Campus Paris Saclay fundation}.
+}
+\begin{document}
+
+\input{typerex-config.tex}
+\newcommand{\typerex}{TypeRex}
+\newcommand{\cmd}[1]{$\texttt{#1}$}
+\begin{htmlonly}
+\renewcommand{\paragraph}[1]{{\bf #1}}
+\end{htmlonly}
+
+%\newenvironment{code}{\footnotesize\verbatim}{\endverbatim}
+%\newenvironment{code}{\small\begin{verbatim}}{\end{verbatim}}
+\newcommand{\verbsize}{%BEGIN LATEX
+\footnotesize%
+%END LATEX
+%HEVEA\color{blue}
+}
+
+%BEGIN LATEX
+\maketitle
+\thispagestyle{empty}
+\cleardoublepage
+%\thispagestyle{plain}
+\input{introduction}
+\newpage
+\thispagestyle{empty}
+\tableofcontents
+%END LATEX
+
+%HEVEA\input{introduction}
+
+\chapter{TypeRex}
+
+\input{../../tools/ocp-edit-mode/docs/user-manual}
+
+\chapter{ocp-build}
+
+\input{../../tools/ocp-build/docs/user-manual}
+
+\end{document}

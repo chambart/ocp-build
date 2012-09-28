@@ -1,0 +1,22 @@
+
+begin library "ocplib-bytecode"
+
+  files = [
+    "strings.ml"
+
+    "byteMisc.ml"
+    "byteFile.ml"
+    "byteCode.ml"
+  ]
+  requires = [ "ocaml-bytecomp"; ]
+
+end
+
+begin program "ocp-bytecode"
+  files = [
+   "byteArgs.ml"
+   "byteActions.ml"
+   "byteMain.ml"
+  ]
+  requires = [ "ocplib-bytecode" "ocplib-lang" ]
+end

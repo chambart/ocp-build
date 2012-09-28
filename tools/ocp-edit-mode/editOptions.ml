@@ -21,7 +21,7 @@ let install_directory = create_option config
                             "where TYPEREX is the directory with the";
                             "sources of TypeRex.";
                           ]
-  string_option "/usr/local/lib/ocp-edit-mode"
+  string_option EditConfiguration.install_dir
 
 let mli_directories = create_option config
   [ "mli_directories" ]

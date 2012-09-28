@@ -81,3 +81,5 @@ ocp-subst-config.exe
 ocp-build/ocp-build
 ocp-build/ocp-build.run
 ocp-build/primitives.ml
+Makefile.config
+typerex.config

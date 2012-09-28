@@ -16,6 +16,8 @@ let _ =
       "install", EditInstall.subcmd_init, EditInstall.subcmd_spec, EditInstall.subcmd_main;
       "config", EditConfig.subcmd_init, EditConfig.subcmd_spec, EditConfig.subcmd_main;
       "emacs", EditEmacs.subcmd_init, EditEmacs.subcmd_spec, EditEmacs.subcmd_main;
+      "candidates", EditCandidates.subcmd_init, EditCandidates.subcmd_spec, EditCandidates.subcmd_main;
+      "documentation", EditDocumentation.subcmd_init, EditDocumentation.subcmd_spec, EditDocumentation.subcmd_main;
 
     ]
     (String.concat "\n"

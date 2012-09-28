@@ -4,6 +4,8 @@
 
 include Makefile.config
 
+
+
 OCPBUILD=./ocp-build/ocp-build
 OCPBUILD_FLAGS=
 
@@ -49,14 +51,17 @@ distclean: clean $(OCPBUILD)
 
 
 install:
-	cp _obuild/ocp-build/ocp-build.asm $(INSTALL_PREFIX)/bin/ocp-build
-	cp _obuild/ocp-fix-errors/ocp-fix-errors.asm $(INSTALL_PREFIX)/bin/ocp-fix-errors
-	cp _obuild/ocp-edit-mode/ocp-edit-mode.asm $(INSTALL_PREFIX)/bin/ocp-edit-mode
-	cp _obuild/ocp-complete/ocp-complete.asm $(INSTALL_PREFIX)/bin/ocp-complete
-	cp _obuild/ocp-spotter/ocp-spotter.asm $(INSTALL_PREFIX)/bin/ocp-spotter
+	mkdir -p $(TYPEREXDIR)
+	mkdir -p $(BINDIR)
+	cp _obuild/ocp-build/ocp-build.asm $(BINDIR)/ocp-build
+	cp _obuild/ocp-fix-errors/ocp-fix-errors.asm $(BINDIR)/ocp-fix-errors
+	cp _obuild/ocp-edit-mode/ocp-edit-mode.asm $(BINDIR)/ocp-edit-mode
+	cp _obuild/ocp-spotter/ocp-spotter.asm $(BINDIR)/ocp-spotter
+	rm -rf $(TYPEREXDIR)/ocp-edit-mode
+	cp -dpR tools/ocp-edit-mode/files $(TYPEREXDIR)/ocp-edit-mode
 
-install-emacs:
-	cp tools/ocp-fix-errors/emacs/ocp-fix-errors.el $(HOME)/.emacs.d/
+#install-emacs:
+#	cp tools/ocp-fix-errors/emacs/ocp-fix-errors.el $(HOME)/.emacs.d/
 
 install-manager:
 	sudo cp _obuild/ocaml-manager/ocaml-manager.asm /usr/bin/ocaml-manager
@@ -126,3 +131,11 @@ fabrice-upload:
 	git push origin fabrice-typerex
 	git push ocamlpro fabrice-typerex
 
+doc:
+	cd docs/user-manual; $(MAKE)
+
+
+
+configure: configure.ac m4/*.m4
+	aclocal -I m4
+	autoconf

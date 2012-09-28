@@ -30,3 +30,6 @@ val find_package : project -> File.t -> package list
 
 val save_project_state : project -> File.t -> unit
 val load_project_state : File.t -> project
+
+val find_obuild : (string -> unit) -> string -> unit
+

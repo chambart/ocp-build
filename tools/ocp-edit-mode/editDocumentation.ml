@@ -73,7 +73,7 @@ let arg_list = [
   "-infile", Arg.String (fun file -> target_filename := Some file),
   " FILENAME : where the completion is asked";
   "-obuild", Arg.Unit (fun () ->
-    CompMisc.find_obuild generate_completion (Sys.getcwd ());
+    BuildOCP.find_obuild generate_completion (Sys.getcwd());
     exit 0
   ), " : read all .cmi files and generate completion/documentation"
 ]
@@ -92,7 +92,7 @@ let find_in_obuild candidate =
     None -> None
   | Some filename ->
     let documentation = ref None in
-    CompMisc.find_obuild (fun dir ->
+    BuildOCP.find_obuild (fun dir ->
       let completion_dir = Filename.concat dir "_completions" in
       let s = Printf.sprintf "%c.txt" candidate.[0] in
       let filename = Filename.concat completion_dir s in
@@ -113,7 +113,7 @@ let subcmd_main args =
         None -> "No documentation"
       | Some s -> s
     in
-    Printf.printf "(message \"ocp-complete documentation -infile %s %s\")\n"
+    Printf.printf "(message \"ocp-edit-mode documentation -infile %s %s\")\n"
       (match !target_filename with
         None -> "???" | Some filename -> filename) candidate;
     Printf.printf "(setq result \"%s\")\n%!" (String.escaped doc)

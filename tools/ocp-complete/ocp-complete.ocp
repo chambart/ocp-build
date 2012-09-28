@@ -1,3 +1,4 @@
+(*
 
 begin program "ocp-complete"
     files = [   "compMisc.ml"
@@ -8,3 +9,4 @@ begin program "ocp-complete"
                    "ocplib-system" "ocplib-edit-mode" "ocaml-bincompat"
                "ocaml-typing" ]
 end
+*)

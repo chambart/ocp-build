@@ -2,14 +2,13 @@
 # (since we don't generate code, this is not so important)
 #
 #
-%%LIBDIR%%=.
 %%ASM_CFI_SUPPORTED%%=true
 %%SYSTHREAD_SUPPORT%%%%=true
-%%PREFIX%%=/home/lefessan/.ocaml/roots/ocaml-with-binannot
-%%BINDIR%%=$(PREFIX)/bin
-%%LIBDIR%%=$(PREFIX)/lib/ocaml
-%%STUBLIBDIR%%=$(LIBDIR)/stublibs
-%%MANDIR%%=$(PREFIX)/man
+%%PREFIX%%=@prefix@
+%%BINDIR%%=@bindir@
+%%LIBDIR%%=@libdir@
+%%STUBLIBDIR%%=@libdir@/stublibs
+%%MANDIR%%=@mandir@
 %%MANEXT%%=1
 %%RANLIB%%=ranlib
 %%RANLIBCMD%%=ranlib
@@ -17,11 +16,11 @@
 %%SHARPBANGSCRIPTS%%=true
 %%BNG_ARCH%%=amd64
 %%BNG_ASM_LEVEL%%=1
-%%PTHREAD_LINK%%=-cclib -lpthread
-%%X11_INCLUDES%%=
-%%X11_LINK%%=-lX11
-%%TK_DEFS%%=-I/usr/include/tcl8.5 -I/usr/include/tk8.5 $(X11_INCLUDES)
-%%TK_LINK%%= -ltk8.5 -ltcl8.5  -ldl $(X11_LINK)
+%%PTHREAD_LINK%%=NONE
+%%X11_INCLUDES%%=NONE
+%%X11_LINK%%=NONE
+%%TK_DEFS%%=NONE
+%%TK_LINK%%=NONE
 %%LIBBFD_LINK%%=
 %%BYTECC%%=gcc
 %%BYTECCCOMPOPTS%%=-fno-defer-pop -Wall -D_FILE_OFFSET_BITS%%=64 -D_REENTRANT
@@ -33,8 +32,8 @@
 %%SHAREDCCCOMPOPTS%%=-fPIC
 %%MKSHAREDLIBRPATH%%=-Wl,-rpath,
 %%NATDYNLINKOPTS%%=-Wl,-E
-%%SYSLIB%%=-l$(1)
-%%MKLIB%%=ar rc $(1) $(2); ranlib $(1)
+%%SYSLIB%%=NONE
+%%MKLIB%%=NONE
 %%ARCH%%=amd64
 %%MODEL%%=default
 %%SYSTEM%%=linux
@@ -54,7 +53,7 @@
 %%CC_PROFILE%%=-pg
 %%SYSTHREAD_SUPPORT%%=true
 %%PARTIALLD%%=ld -r
-%%PACKLD%%=$(PARTIALLD) $(NATIVECCLINKOPTS) -o\ ";; let _ = "
+%%PACKLD%%=NONE
 %%DLLCCCOMPOPTS%%=
 %%IFLEXDIR%%=
 %%O%%=o
@@ -69,7 +68,7 @@
 %%TOOLCHAIN%%=cc
 %%NATDYNLINK%%=true
 %%CMXS%%=cmxs
-%%MKEXE%%=$(BYTECC)
+%%MKEXE%%=NONE
 %%MKDLL%%=gcc -shared
 %%MKMAINDLL%%=gcc -shared
 %%RUNTIMED%%=noruntimed
@@ -77,3 +76,4 @@
 %%ASM_CFI_SUPPORTED%%=true
 %%BYTERUN%%=ocamlrun
 Sys.ocaml_version="4.0-typerex"
+%%DATAROOTDIR%%=@datarootdir@
