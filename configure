@@ -4799,6 +4799,9 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
+echo Creating file ocp-build.root
+touch ocp-build.root
+
 echo
 echo Executables will be installed in ${bindir}
 echo Libraries will be installed in ${libdir} + typerex
