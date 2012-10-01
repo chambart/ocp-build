@@ -22,6 +22,9 @@ opt: $(OCPBUILD)
 noscan: $(OCPBUILD)
 	$(OCPBUILD) $(OCPBUILD_FLAGS)
 
+clone:
+	svn checkout http://caml.inria.fr/svn/ocaml/version/4.00 ocaml/ocaml
+
 ocp-build/ocp-build.boot: boot/ocp-build.boot
 	cp -f boot/ocp-build.boot ocp-build/ocp-build.boot
 

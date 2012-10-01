@@ -42,7 +42,7 @@ begin library "ocaml-utils"
     "tbl.ml" (no_mli = true)
     "config.mli"
     "config.mlp" (ml = true
-                  pp = [ "_obuild/ocp-subst-config/ocp-subst-config.byte" "-config-file" "typerex.config" ]
+                  pp = [ "%{ocp-subst-config_DST_DIR}%/ocp-subst-config.byte" "-config-file" "typerex.config" ]
 
     )
     "clflags.ml";
@@ -196,7 +196,7 @@ files = [
   "schedgen.ml"
   "amd64/scheduling.ml"
   "emitaux.ml"
-  "amd64/emit.mlp" ( ml = true pp = [ "_obuild/ocp-cvtemit/ocp-cvtemit.byte" ]
+  "amd64/emit.mlp" ( ml = true pp = [ "%{ocp-cvtemit_DST_DIR}%/ocp-cvtemit.byte" ]
                      pp_requires = [ "ocp-cvtemit:byte" ]
   )
   "asmgen.ml"
