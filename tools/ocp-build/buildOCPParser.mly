@@ -48,7 +48,6 @@ open BuildOCPTree
 %token FILES
 %token REQUIRES
 %token TYPE
-%token FILE
 %token USE
 %token PACK
 %token IF
@@ -57,7 +56,7 @@ open BuildOCPTree
 %token NOT
 %token COND_OR
 %token COND_AND
-%token SYNTAX
+%token SYNTAXES
 %token CAMLP4
 %token CAMLP5
 
@@ -119,14 +118,29 @@ one_statement:
 simple_statement:
 | simple_option { StmtOption $1 }
 | FILES EQUAL list_of_files { StmtFilesSet $3 }
-| FILE EQUAL STRING { StmtFilesSet [$3, []] }
+/* | FILE EQUAL STRING { StmtFilesSet [$3, []] } */
 | FILES PLUSEQUAL list_of_files { StmtFilesAppend $3 }
-| REQUIRES list_of_strings { StmtRequiresAppend $2 }
-| SYNTAX STRING EQUAL camlp4_or_camlp5 list_of_strings { StmtSyntax (Some $2, $4, $5) }
-| SYNTAX EQUAL camlp4_or_camlp5 list_of_strings { StmtSyntax (None, $3, $4) }
 /* The two next ones only for backward compatibility */
-| REQUIRES EQUAL list_of_strings { StmtRequiresAppend $3 }
-| REQUIRES PLUSEQUAL list_of_strings { StmtRequiresAppend $3 }
+| REQUIRES list_of_requires { StmtRequiresAppend $2 }
+| SYNTAXES list_of_syntaxes { StmtRequiresAppend $2 }
+| REQUIRES EQUAL list_of_requires { StmtRequiresAppend $3 }
+| SYNTAXES EQUAL list_of_syntaxes { StmtRequiresAppend $3 }
+| REQUIRES PLUSEQUAL list_of_requires { StmtRequiresAppend $3 }
+| SYNTAXES PLUSEQUAL list_of_syntaxes { StmtRequiresAppend $3 }
+;
+
+list_of_files:
+| list_of_string_attributes { $1 }
+;
+
+list_of_requires:
+| list_of_string_attributes {
+  List.map (fun (x, options) -> (x, OptionBoolSet("link", true) :: options)) $1 }
+;
+
+list_of_syntaxes:
+| list_of_string_attributes {
+  List.map (fun (x, options) -> (x, OptionBoolSet("syntax", true) :: options)) $1 }
 ;
 
 camlp4_or_camlp5:
@@ -141,7 +155,8 @@ simple_option:
 | IDENT MINUSEQUAL string_or_list { OptionListRemove ($1,$3) }
 | IDENT EQUAL TRUE { OptionBoolSet ($1, true) }
 | IDENT EQUAL FALSE { OptionBoolSet ($1, false) }
-| SYNTAX EQUAL STRING { OptionListSet ("syntax", [$3]) }
+/* | SYNTAX EQUAL STRING { OptionListSet ("syntax", [$3]) } */
+| IDENT { OptionBoolSet ($1, true) }
 ;
 
 string_or_list:
@@ -210,7 +225,7 @@ strings:
 | SEMI strings { $2 }
 ;
 
-list_of_files:
+list_of_string_attributes:
 | LBRACKET files RBRACKET { $2 }
 ;
 
@@ -218,6 +233,10 @@ packer:
 | PACK STRING { $2 }
 | PACK IDENT  { let s = $2 in s.[0] <- Char.lowercase s.[0]; s ^ ".ml" }
 ;
+
+/* TODO: currently, we use this rule both for "files" and "requires".
+This is bad, as "pack" has no meaning for "requires". Thus, we should
+use a different rule. */
 
 files:
  { [] }

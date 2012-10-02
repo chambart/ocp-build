@@ -11,20 +11,15 @@
 (*                                                                            *)
 (******************************************************************************)
 
-type options =
-    {
-      options_vars : option_value StringMap.t;
-    }
+type options = option_value StringMap.t
 
 and option_value =
     OptionBool of bool
   | OptionList of string list
 
-let new_options () = {
-    options_vars = StringMap.empty;
-}
+let new_options = StringMap.empty
 
-let default_options = new_options ()
+let default_options = new_options
 
 type 'a source_option = {
   option_name : string;
@@ -56,7 +51,7 @@ let new_initial_strings_option name default =
 
 let options_find option options =
 (*  try *)
-    StringMap.find option.option_name options.options_vars
+    StringMap.find option.option_name options
 (*  with Not_found as e ->
     match options.options_inherit with
 	None -> raise e
@@ -88,7 +83,7 @@ let strings_option options strings_option =
 
 let direct_strings_option options strings_option =
   try
-    match StringMap.find strings_option.option_name options.options_vars with
+    match StringMap.find strings_option.option_name options with
 	OptionList list -> list
       | _ ->
 	Printf.eprintf "Warning: bad type for string list option %s. Returning default value [%s]\n%!" strings_option.option_name

@@ -17,8 +17,8 @@ open BuildOCPTypes
 
 type config = {
   config_options : BuildOCPVariable.options;
-  config_files : (string * set_option list) list;
-  config_requires : string list;
+  config_files : string_with_attributes list;
+  config_requires : string_with_attributes list;
   config_dirname : string;
   config_filename : string;
 }
@@ -55,13 +55,13 @@ let new_package pj name dirname filename =
     package_provides = name;
     package_type = ProjectLibrary;
 (*    package_native = true; *)
-(*    package_enabled = true; *)
+    package_validated = false;
     package_sources = [];
     package_files = [];
     package_dirname = dirname;
     package_deps_map = StringMap.empty;
-    package_deps_sorted = [];
-    package_options = new_options ();
+(*    package_deps_sorted = []; *)
+    package_options = new_options;
 (*    package_cflags = ""; *)
 (*    package_cclib = ""; *)
 (*    package_details = None; *)
@@ -75,11 +75,10 @@ let new_package pj name dirname filename =
   pk
 
 let empty_config set_defaults =
-  let options = BuildOCPVariable.new_options () in
+  let options = BuildOCPVariable.new_options in
   let options =
-    {  options_vars =
-	List.fold_left (fun vars f -> f vars)
-	  options.options_vars set_defaults }
+    List.fold_left (fun vars f -> f vars)
+      options set_defaults
   in
   { config_options = options;
     config_files = [];
@@ -95,8 +94,7 @@ let define_config config_name options = Hashtbl.add configs config_name options
 let find_config config_name = Hashtbl.find configs config_name
 
 let option_list_set options name list =
-  { options_vars =
-      StringMap.add name (OptionList list) options.options_vars }
+      StringMap.add name (OptionList list) options
 
 let rec option_list_remove prev list =
   match list with
@@ -122,11 +120,10 @@ let rec option_list_remove prev list =
 
 let option_list_remove options name list =
   try
-    match StringMap.find name options.options_vars with
+    match StringMap.find name options with
 	OptionList prev ->
           let new_list = option_list_remove prev list in
-          {               options_vars =
-              StringMap.add name (OptionList new_list) options.options_vars }
+          StringMap.add name (OptionList new_list) options
       | _ ->
 	failwith  (Printf.sprintf "OptionListRemove %s: incompatible values" name);
   with Not_found -> options
@@ -136,15 +133,13 @@ let option_list_remove options name list =
 let option_list_append options name list =
   let list =
     try
-      match StringMap.find name options.options_vars with
+      match StringMap.find name options with
 	  OptionList prev -> prev @ list
 	| _ ->
 	  failwith  (Printf.sprintf "OptionListAppend %s: incompatible values" name);
     with Not_found -> list
   in
-  {
-    options_vars =
-      StringMap.add name (OptionList list) options.options_vars }
+  StringMap.add name (OptionList list) options
 
 let options_list_append options names list =
   List.fold_left (fun options var ->
@@ -198,7 +193,7 @@ let rec translate_condition options cond =
   match cond with
     | IsEqualStringList (name, list) ->
       let name_value = try
-                         StringMap.find name options.options_vars
+                         StringMap.find name options
         with Not_found -> OptionList []
       in
       (*      Printf.fprintf stderr "translate_condition %s = %S = %S\n%!"
@@ -209,7 +204,7 @@ let rec translate_condition options cond =
       name_value = OptionList list
     | IsTrue name ->
       let name_value = try
-                         StringMap.find name options.options_vars
+                         StringMap.find name options
         with Not_found -> OptionBool false
       in
       name_value = OptionBool true
@@ -237,9 +232,7 @@ and translate_option options op =
     | OptionListRemove (name, list) -> option_list_remove options name list
 
     | OptionBoolSet (name, bool) ->
-      {
-	options_vars =
-	  StringMap.add name (OptionBool bool) options.options_vars }
+      StringMap.add name (OptionBool bool) options
 
     | OptionIfThenElse (cond, ifthen, ifelse) ->
       begin
@@ -272,19 +265,48 @@ and translate_option options op =
 *)
 
 
-let add_project_dep pk link s =
-  try
-    let pd = StringMap.find s pk.package_deps_map in
-    pd.dep_link <- pd.dep_link || link;
-    pd
-  with Not_found ->
-    let pd = {
-      dep_for = [];
-      dep_project = s;
-      dep_link = link;
-    } in
-    pk.package_deps_map <- StringMap.add s pd pk.package_deps_map;
-    pd
+let add_project_dep pk s options =
+  let dep =
+    try
+      StringMap.find s pk.package_deps_map
+    with Not_found ->
+      let dep = {
+        dep_project = s;
+        dep_link = false;
+        dep_syntax = false;
+        dep_optional = false;
+      }
+      in
+      pk.package_deps_map <- StringMap.add s dep pk.package_deps_map;
+      dep
+  in
+
+  begin
+    try
+      match StringMap.find "link" options with
+        OptionBool bool -> dep.dep_link <- bool
+      | _ ->
+        Printf.fprintf stderr "Warning: option \"link\" is not bool !\n%!";
+    with Not_found -> ()
+  end;
+
+  begin
+    try
+      match StringMap.find "syntax" options with
+        OptionBool bool -> dep.dep_syntax <- bool
+      | _ ->
+        Printf.fprintf stderr "Warning: option \"syntax\" is not bool !\n%!";
+    with Not_found -> ()
+  end;
+
+  begin
+    try
+      match StringMap.find "optional" options with
+        OptionBool bool -> dep.dep_optional <- bool
+      | _ ->
+        Printf.fprintf stderr "Warning: option \"optional\" is not bool !\n%!";
+    with Not_found -> ()
+  end
 
 
 let define_package pj name config kind =
@@ -294,8 +316,11 @@ let define_package pj name config kind =
   let project_options = config.config_options in
   pk.package_type <- kind;
   pk.package_provides <- name;
-  pk.package_sources <-  config.config_files;
-  pk.package_deps_sorted <- List.map (fun dep ->
+(*  pk.package_sources <-  config.config_files; *)
+ (*
+   TODO: verify :pp and :nolink
+
+ pk.package_deps_sorted <- List.map (fun dep ->
     let dep_name, kind = OcpString.cut_at dep ':' in
     let link = match kind with
         "nolink" | "pp" -> false
@@ -304,8 +329,17 @@ let define_package pj name config kind =
         Printf.eprintf "Warning: for package %s, require %S has unknown kind\n%!" name dep;
         false
     in
-    add_project_dep pk link dep_name) config.config_requires;
-  pk.package_options <- project_options
+    add_project_dep pk link dep_name) config.config_requires; *)
+  pk.package_options <- project_options;
+  pk.package_files <- List.map (fun (file, options) ->
+        (file, translate_options pk.package_options options)
+  ) config.config_files;
+
+  List.iter (fun (s, options) ->
+    let options = translate_options default_options options in
+    add_project_dep pk s options
+  ) config.config_requires
+
 
 let rec translate_toplevel_statements pj config list =
   match list with

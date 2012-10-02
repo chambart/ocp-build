@@ -36,10 +36,10 @@ type statement =
   | StmtBlock of statement list
   | StmtDefineConfig of string * set_option list
   | StmtDefinePackage of package_type * string * statement list
-  | StmtFilesSet of (string * set_option list) list
-  | StmtFilesAppend of (string * set_option list) list
-  | StmtRequiresSet of string list
-  | StmtRequiresAppend of string list
+  | StmtFilesSet of string_with_attributes list
+  | StmtFilesAppend of string_with_attributes list
+  | StmtRequiresSet of string_with_attributes list
+  | StmtRequiresAppend of string_with_attributes list
   | StmtIfThenElse of condition * statement list * statement list option
   | StmtSyntax of string option * camlpN * string list
 
@@ -52,6 +52,8 @@ and set_option =
   | OptionIfThenElse of condition * set_option list * set_option list option
   | OptionBlock of set_option list
 (*  | OptionConfigAppend of string *)
+
+and string_with_attributes = string * set_option list
 
 let modname_of_fullname fullname =
   let modname = Filename.chop_extension (Filename.basename fullname) in

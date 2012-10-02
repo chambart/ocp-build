@@ -78,7 +78,7 @@ type package = {
   (* at the end of "load_project", we rename package_identifiers to be
      continuous *)
   mutable package_id : int;
-
+  mutable package_validated : bool;
   package_node : LinearToposort.node;
   mutable package_missing_deps : int;
 
@@ -86,12 +86,16 @@ type package = {
   mutable package_has_asm_debug : bool;    (* unused: TODO *)
   mutable package_has_asm_profile : bool;  (* unused: TODO *)
 
-  mutable package_sources : (string * set_option list) list;
+
+  mutable package_sources : string_with_attributes list;
     (* the sources of the project, plus the flags to compile them. *)
-    mutable package_files : (string * BuildOCPVariable.options) list;
+  mutable package_files : (string * BuildOCPVariable.options) list;
+
+
+
   (* list of projects, on which compilation depends *)
   mutable package_deps_map : string package_dependency StringMap.t;
-  mutable package_deps_sorted : string package_dependency list;
+(*  mutable package_deps_sorted : string package_dependency list; *)
   (* bool = should the project be linked (true) or just a dependency (false) *)
   mutable package_requires : package package_dependency list;
   mutable package_added : bool;
@@ -102,8 +106,9 @@ type package = {
 and 'a package_dependency =
     {
       dep_project : 'a;
-      mutable dep_for : string list;
-      mutable dep_link : bool; (* DepFlagsSet.t; *)
+      mutable dep_link : bool;
+      mutable dep_syntax : bool;
+      mutable dep_optional : bool;
     }
 
 and project = {

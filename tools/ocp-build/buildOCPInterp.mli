@@ -27,7 +27,10 @@ val translate_options :
   BuildOCPVariable.options ->
   BuildOCPTree.set_option list -> BuildOCPVariable.options
 
-val add_project_dep: BuildOCPTypes.package -> bool -> string ->  string package_dependency
+(*
+val add_project_dep: BuildOCPTypes.package -> bool -> string ->  unit
+  (* string package_dependency *)
+*)
 
 (*
 

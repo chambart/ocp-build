@@ -141,8 +141,8 @@ let command_includes lib pack_for pj =
       (* TODO: Fabrice: they should be reversed, no ?
          We should search directories in the
 	 reverse order of the topological order. *)
-	List.iter (fun pd ->
-	  let lib = pd.dep_project in
+	List.iter (fun dep ->
+          let lib = dep.dep_project in
           match lib.lib_type with
               ProjectProgram (* | ProjectToplevel *) -> ()
             | ProjectLibrary | ProjectObjects ->
@@ -212,8 +212,8 @@ let add_c2o_rule b lib pj seq src_file target_file options =
 *)
   add_rule_source r src_file;
   add_rule_sources r seq;
-  List.iter (fun pd ->
-    let lib = pd.dep_project in
+  List.iter (fun dep ->
+    let lib = dep.dep_project in
     add_rule_sources r lib.lib_bytecomp_deps
   ) pj.lib_requires;
   add_rule_temporary r temp_file
@@ -1501,7 +1501,7 @@ let add_package b pk =
 
   let package_dirname =
     try
-	  match StringMap.find dirname_option.option_name pk.package_options.options_vars with
+	  match StringMap.find dirname_option.option_name pk.package_options with
 	      OptionList list ->
                 BuildSubst.subst (String.concat Filename.dir_sep list)
 	    | _ -> raise Not_found

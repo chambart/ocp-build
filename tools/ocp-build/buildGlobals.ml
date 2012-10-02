@@ -86,10 +86,9 @@ let new_library b pj package_dirname src_dir dst_dir mut_dir =
       lib_filename = pj.package_filename;
       lib_node = pj.package_node;
       lib_missing_deps = pj.package_missing_deps;
-      lib_deps = pj.package_deps_map;
-      lib_requires = List.map (fun pd ->
-        let pk = pd.dep_project in
-        { pd with dep_project = Hashtbl.find all_projects pk.package_id }
+      lib_requires = List.map (fun dep ->
+        let pd = Hashtbl.find all_projects dep.dep_project.package_id in
+        { dep with dep_project = pd }
       ) pj.package_requires;
       lib_added = pj.package_added;
       lib_options = pj.package_options;
@@ -114,9 +113,11 @@ let new_library b pj package_dirname src_dir dst_dir mut_dir =
       lib_internal_modules = StringsMap.empty;
       lib_dep_deps = IntMap.empty;
       lib_includes = None;
-      lib_sources = List.map (fun (file, options) ->
+      lib_sources = pj.package_files;
+
+(*List.map (fun (file, options) ->
         (file, BuildOCPInterp.translate_options pj.package_options options)
-      ) pj.package_sources;
+      ) pj.package_sources; *)
     }
   in
   Hashtbl.add all_projects lib.lib_id lib;

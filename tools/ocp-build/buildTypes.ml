@@ -42,7 +42,6 @@ and package_info = {
   lib_node : LinearToposort.node;
   mutable lib_missing_deps : int;
 
-  mutable lib_deps : string package_dependency StringMap.t;
   mutable lib_requires : package_info package_dependency list;
   mutable lib_added : bool;
   mutable lib_options : BuildOCPVariable.options;

@@ -39,11 +39,7 @@ let rec validate_project s pk =
       with Not_found -> ()
     end;
     Hashtbl.add s.validated key pk;
-
-    pk.package_requires <- List.map (fun pd_dep ->
-	let pk = Hashtbl.find s.validated (pd_dep.dep_project, "") in
-	{ pd_dep with dep_project = pk }
-    ) pk.package_deps_sorted;
+    pk.package_validated <- true;
 
     try
       let list_ref = Hashtbl.find s.missing key in
@@ -60,6 +56,8 @@ let check_project s pk =
 
     pk.package_missing_deps <- 0;
     StringMap.iter (fun name pkdep ->
+      if not pkdep.dep_optional then
+
       let key = (name, "") in (* TODO: we should use a datastructure that can handle
                                  dependencies by tag and by version *)
       if not (Hashtbl.mem s.validated key) then
@@ -107,12 +105,14 @@ let open_project files =
 *)
 
 module PackageDepSorter = LinearToposort.Make(struct
-  type t = package  package_dependency
-  let node pd = pd.dep_project.package_node
-  let iter_edges f pd = List.iter f pd.dep_project.package_requires
-  let name pd = pd.dep_project.package_name
+  type t = package
+  let node pd = pd.package_node
+  let iter_edges f pd =
+    List.iter (fun dep -> f dep.dep_project) pd.package_requires
+  let name pd = pd.package_name
 end)
 
+(*
 module PackageLinkSorter = LinearToposort.Make(struct
   type t = package  package_dependency
   let node pd = pd.dep_project.package_node
@@ -122,51 +122,100 @@ module PackageLinkSorter = LinearToposort.Make(struct
         f pd) pd.dep_project.package_requires
   let name pd = pd.dep_project.package_name
 end)
+*)
 
+(*
+let dep_link dep =
+  try
+    match StringMap.find "link" dep.dep_options with
+      OptionBool bool -> bool
+    | _ ->
+      Printf.fprintf stderr "Warning: option \"link\" is not bool !\n%!";
+      false
+  with Not_found -> false
 
-(* Do a closure of all dependencies for this project *)
+let dep_syntax dep =
+  try
+    match StringMap.find "syntax" dep.dep_options with
+      OptionBool bool -> bool
+    | _ ->
+      Printf.fprintf stderr "Warning: option \"syntax\" is not bool !\n%!";
+      false
+  with Not_found -> false
+*)
+
+(* Do a closure of all dependencies for this project. Called only on
+validated_projects *)
 let update_deps pj =
 
   if verbose 2 then begin
     Printf.eprintf "BEFORE update_deps: Project %s depends on:\n%!" pj.package_name;
-    List.iter (fun pd ->
-      Printf.eprintf "\t%s%s\n%!" pd.dep_project.package_name
-	(if pd.dep_link then "" else "(nolink)")
+    List.iter (fun dep ->
+      let pd = dep.dep_project in
+      Printf.eprintf "\t%s%s\n%!" pd.package_name
+	(if dep.dep_link then "" else "(nolink)")
     ) pj.package_requires
   end;
 
+(*
+  For now, we have three kinds of dependencies:
+ 1) 'link' dependencies: we must copy all 'link' transitive dependencies
+     as new 'link' dependencies.
+ 2) 'syntax' dependencies: we must copy all 'link' transitive dependencies
+     as new 'syntax' dependencies.
+ 3) neither 'link' nor 'syntax': we should not copy transitive dependencies.
+
+We cannot do it in one pass: we should first compute strong dependencies, and
+remove packages not meeting strong dependencies. Then, we can redo the
+computation, this time knowing which optional packages are available.
+
+*)
+
   let deps = Hashtbl.create 111 in
-  let list = ref
-    (List.filter (fun pd ->
-      if not (Hashtbl.mem deps pd.dep_project.package_id) then begin
-        Hashtbl.add deps pd.dep_project.package_id pd;
-        true
-      end else false)
-    (List.map (fun pd -> { pd with dep_link = false } ) pj.package_requires)) in
-  let rec add_dep pd =
-    let pj2 = pd.dep_project in
-    let dep_link =
+  let list = ref [] in
+  List.iter (fun dep ->
+    let pd = dep.dep_project in
+    if not (Hashtbl.mem deps pd.package_id) then
+      Hashtbl.add deps dep.dep_project.package_id dep
+  ) pj.package_requires;
+
+  let rec add_link_deps to_set dep =
+    if dep.dep_link then
+      let pj2 = dep.dep_project in
+      let dep2 = try
+                   Hashtbl.find deps pj2.package_id
+        with Not_found ->
+          let dep = {
+            dep_project = pj2;
+            dep_link = false;
+            dep_syntax = false;
+            dep_optional = false;
+          } in
+          Hashtbl.add deps pj.package_id dep;
+          dep
+      in
+      to_set dep2;
       match pj2.package_type with
-	  ProjectLibrary
-	| ProjectObjects -> pd.dep_link
-	| ProjectProgram -> false
-(*	| ProjectToplevel -> false *)
-    in
-    let add_more_deps =
-      try
-	let pd2 = Hashtbl.find deps pj2.package_id in
-	if (not pd2.dep_link) && dep_link then begin
-	  pd2.dep_link <- true;
-	  true
-	end else false
-      with Not_found ->
-	let pd2 = { pd with dep_link = dep_link } in
-	list :=  pd2 :: !list;
-	Hashtbl.add deps pj2.package_id pd;
-	dep_link
-    in
-    if add_more_deps then
-      List.iter add_dep pj2.package_requires
+      | ProjectLibrary
+      | ProjectObjects ->
+        List.iter (add_link_deps to_set) pj2.package_requires;
+    | ProjectProgram -> ()
+  in
+
+  let rec add_dep dep =
+    let pj2 = dep.dep_project in
+    match pj2.package_type with
+      ProjectLibrary
+    | ProjectObjects ->
+      if dep.dep_link then
+        List.iter
+          (add_link_deps (fun dep -> dep.dep_link <- true))
+          pj2.package_requires;
+      if dep.dep_syntax then
+        List.iter
+          (add_link_deps (fun dep -> dep.dep_link <- false))
+          pj2.package_requires;
+    | ProjectProgram -> ()
   in
   List.iter add_dep pj.package_requires;
   pj.package_requires <- !list;
@@ -184,7 +233,8 @@ List.iter (fun pd ->
     ) pj.package_requires
   end;
 
-  pj.package_requires <- PackageLinkSorter.sort (* sort_sorted *) !list;
+(* TODO: verify this is useless ? since sorted later again *)
+  pj.package_requires <- (*PackageLinkSorter.sort sort_sorted *) !list;
 
   if verbose 2 then begin
     Printf.eprintf "AFTER update_deps: Project %s depends on:\n%!" pj.package_name;
@@ -269,16 +319,6 @@ let load_project files =
 
   let packages = BuildOCPInterp.final_state packages in
 
-(* Before sorting the project, let's add syntaxes *)
-  Array.iter (fun pk ->
-    if bool_option_true pk.package_options enabled_option then begin
-      List.iter (fun lib ->
-        ignore (BuildOCPInterp.add_project_dep pk false lib
-                  :  string package_dependency)
-      ) (strings_option pk.package_options syntaxes_option)
-    end
-  ) packages;
-
   Array.iter (fun pk -> check_project state pk) packages;
 
   let project_incomplete = ref [] in
@@ -293,8 +333,18 @@ let load_project files =
   ) packages;
 
   let list = ref [] in
-  Hashtbl.iter (fun _ pj ->
-    list := { dep_project = pj; dep_for = []; dep_link = true } :: !list
+  Hashtbl.iter (fun _ pk ->
+    list := pk :: !list;
+
+    pk.package_requires <- [];
+    StringMap.iter (fun dep_name dep ->
+      try
+        let pd = Hashtbl.find state.validated (dep_name, "") in
+        pk.package_requires <- { dep with
+          dep_project = pd } :: pk.package_requires
+      with Not_found -> () (* probably an optional dependency *)
+    ) pk.package_deps_map;
+
   ) state.validated;
 
   let project_missing = ref [] in
@@ -303,9 +353,16 @@ let load_project files =
     state.missing;
 (* Note that the result of this function can contain more elements
   as the initial list, as new dependencies are automatically added. *)
-  let list = PackageDepSorter.sort !list in
-  let project_sorted = List.map (fun pd -> pd.dep_project) list in
+  let project_sorted = PackageDepSorter.sort !list in
   List.iter update_deps project_sorted;
+
+  List.iter (fun pk ->
+    (* TODO: now that we know which package is available, we should
+       set flags before processing file attributes. *)
+    pk.package_files <- List.map (fun (file, options) ->
+      (file, BuildOCPInterp.translate_options pk.package_options options)
+    ) pk.package_sources;
+  ) project_sorted;
 
   let npackages = Array.length packages in
 
@@ -318,8 +375,8 @@ let load_project files =
   } in
   assert (npackages =
       Array.length pj.project_sorted +
-      Array.length pj.project_incomplete +
-      Array.length pj.project_disabled);
+        Array.length pj.project_incomplete +
+        Array.length pj.project_disabled);
   reset_package_ids pj.project_sorted;
   Array.iter (fun pk ->
     pk.package_requires <- List.sort (fun dep1 dep2 ->
@@ -334,8 +391,8 @@ let load_project files =
   pj, !nerrors
 
 (*
-val save_project : (File.t -> (project -> unit))
-let save_project file_t pj =
+  val save_project : (File.t -> (project -> unit))
+  let save_project file_t pj =
   save_with_help pj.project_config
 *)
 
