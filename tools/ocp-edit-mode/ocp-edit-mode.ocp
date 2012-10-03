@@ -12,6 +12,22 @@
 
 (* shared as a library, because other tools, like 'ocp-complete'
   may want to load 'ocp-edit-mode' configuration. *)
+
+
+(*
+begin library "ocplib-edit-mode"
+  ppflags = [ "-config-file"; "typerex.config" ]
+
+  files = [
+       "editConfiguration.mlp" (ml = true
+             syntax = [ "ocp-subst-config" ]
+        )
+       "editOptions.ml" ]
+  requires = [ "ocplib-system"    ]
+  syntaxes = [ "ocp-subst-config" ]
+end
+*)
+
 begin library "ocplib-edit-mode"
 
   files = [
@@ -19,7 +35,7 @@ begin library "ocplib-edit-mode"
              pp = [ "_obuild/ocp-subst-config/ocp-subst-config.byte" "-config-file" "typerex.config" ]
     )
          "editOptions.ml" ]
-  requires = [ "ocplib-system"  "ocp-subst-config" ]
+  requires = [ "ocplib-system"  "ocp-subst-config" (syntax) ]
   pp_requires = [ "ocp-subst-config:byte" ]
 end
 

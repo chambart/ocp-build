@@ -151,7 +151,8 @@ let all_mode_hook mode filename =
       "(show-paren-mode t)";
       "(setq blink-matching-paren t)";
       "(setq blink-matching-paren-on-screen t)";
-      "(setq show-paren-style 'expression)";
+      "(make-variable-buffer-local 'show-paren-style)";
+      Printf.sprintf "(setq show-paren-style '%s)" !!show_paren_style;
       "(setq blink-matching-paren-dont-ignore-comments t)";
       "(font-lock-mode t)";
       "(setq font-lock-maximum-decoration t)";

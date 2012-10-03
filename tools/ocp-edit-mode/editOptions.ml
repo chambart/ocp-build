@@ -25,7 +25,7 @@ let config = SimpleConfig.create_config_file config_file
 
 (* the current version of this file. As soon as you add a new option,
   you should increase this value. *)
-let current_update = 2
+let current_update = 5
 
 let install_directory = create_option config
   [ "install_directory" ] [ "Where ocp-edit-mode files are stored";
@@ -64,6 +64,11 @@ let indent_use_tabs = create_option config
   [ "indent_use_tabs" ]
   [ "Set only if you want to use tabulations instead of spaces" ]
   bool_option false
+
+let show_paren_style = create_option config
+  [ "show_paren_style" ]
+  [ "The style used to show parenthesis (\"parenthesis\" or \"expression\")" ]
+  string_option "parenthesis"
 
 let abbrevs = create_option config
   [ "abbreviations" ]
