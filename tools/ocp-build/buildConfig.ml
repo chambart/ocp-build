@@ -238,8 +238,7 @@ let check_config pjo =
       if pjo.option_native then begin
         if pjo.option_bytecode then begin
           Printf.eprintf "Warning: could not find an OCaml native code compiler\n";
-          Printf.eprintf "\tDesactivating native code generation.\n";
-          exit 2
+          Printf.eprintf "\tDeactivating native code generation.\n";
         end
         else begin
           Printf.eprintf "Error: could not find an OCaml native code compiler\n";
