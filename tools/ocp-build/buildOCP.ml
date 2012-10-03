@@ -144,18 +144,22 @@ let dep_syntax dep =
   with Not_found -> false
 *)
 
+
+let print_deps msg pk =
+  Printf.eprintf "%s: Project %s depends on:\n%!" msg pk.package_name;
+  List.iter (fun dep ->
+    let pd = dep.dep_project in
+    Printf.eprintf "\t%s%s%s%s\n%!" pd.package_name
+      (if dep.dep_link then "(link)" else "")
+      (if dep.dep_syntax then "(syntax)" else "")
+      (if dep.dep_optional then "(optional)" else "")
+  ) pk.package_requires
+
 (* Do a closure of all dependencies for this project. Called only on
 validated_projects *)
 let update_deps pj =
 
-  if verbose 2 then begin
-    Printf.eprintf "BEFORE update_deps: Project %s depends on:\n%!" pj.package_name;
-    List.iter (fun dep ->
-      let pd = dep.dep_project in
-      Printf.eprintf "\t%s%s\n%!" pd.package_name
-	(if dep.dep_link then "" else "(nolink)")
-    ) pj.package_requires
-  end;
+  if verbose 2 then print_deps "BEFORE update_deps" pj;
 
 (*
   For now, we have three kinds of dependencies:
@@ -175,8 +179,13 @@ computation, this time knowing which optional packages are available.
   let list = ref [] in
   List.iter (fun dep ->
     let pd = dep.dep_project in
-    if not (Hashtbl.mem deps pd.package_id) then
-      Hashtbl.add deps dep.dep_project.package_id dep
+    try
+      let dep2 = Hashtbl.find deps pd.package_id in
+      dep2.dep_link <- dep2.dep_link || dep.dep_link;
+      dep2.dep_syntax <- dep2.dep_syntax || dep.dep_syntax;
+    with Not_found ->
+      Hashtbl.add deps dep.dep_project.package_id dep;
+      list := dep :: !list
   ) pj.package_requires;
 
   let rec add_link_deps to_set dep =
@@ -191,7 +200,8 @@ computation, this time knowing which optional packages are available.
             dep_syntax = false;
             dep_optional = false;
           } in
-          Hashtbl.add deps pj.package_id dep;
+          Hashtbl.add deps pj2.package_id dep;
+          list := dep :: !list;
           dep
       in
       to_set dep2;
@@ -213,7 +223,7 @@ computation, this time knowing which optional packages are available.
           pj2.package_requires;
       if dep.dep_syntax then
         List.iter
-          (add_link_deps (fun dep -> dep.dep_link <- false))
+          (add_link_deps (fun dep -> dep.dep_syntax <- false))
           pj2.package_requires;
     | ProjectProgram -> ()
   in
@@ -225,24 +235,12 @@ List.iter (fun pd ->
     List.iter add_dep pj.package_requires
   ) pj.package_requires; *)
 
-  if verbose 2 then begin
-    Printf.eprintf "BEFORE update_deps SORT: Project %s depends on:\n%!" pj.package_name;
-    List.iter (fun pd ->
-      Printf.eprintf "\t%s%s\n%!" pd.dep_project.package_name
-	(if pd.dep_link then "" else "(nolink)")
-    ) pj.package_requires
-  end;
+  if verbose 2 then print_deps "BEFORE update_deps SORT" pj;
 
 (* TODO: verify this is useless ? since sorted later again *)
   pj.package_requires <- (*PackageLinkSorter.sort sort_sorted *) !list;
 
-  if verbose 2 then begin
-    Printf.eprintf "AFTER update_deps: Project %s depends on:\n%!" pj.package_name;
-    List.iter (fun pd ->
-      Printf.eprintf "\t%s%s\n%!" pd.dep_project.package_name
-	(if pd.dep_link then "" else "(nolink)")
-    ) pj.package_requires
-  end;
+  if verbose 2 then print_deps "AFTER update_deps SORT" pj;
 
   ()
 

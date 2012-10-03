@@ -13,10 +13,24 @@
 
 (* TODO:
 
+   Currently, there is no verification that all the dependencies
+   appearing in pp_requires also appear in requires. Actually,
+   pp_requires could be automatically added.
+
+   We could simplify this by:
+
+   ppflags = [ "" ]
+
+   requires =
+
+   syntax = [ "pa_dyntype" ]
+
    A syntax MUST either depend on another syntax (requires = [ "toto" ])
    where toto is a syntax, OR set the "pp_master" option. If we depend
    on a package, and this package depends on another syntax, it does
    not matter.
+
+
 
 *)
 
@@ -146,8 +160,10 @@ let command_includes lib pack_for pj =
           match lib.lib_type with
               ProjectProgram (* | ProjectToplevel *) -> ()
             | ProjectLibrary | ProjectObjects ->
-	      add_include_dir lib.lib_dst_dir;
-	      add_include_dir lib.lib_src_dir;
+              if dep.dep_link then begin
+	        add_include_dir lib.lib_dst_dir;
+	        add_include_dir lib.lib_src_dir;
+              end
 	) pj.lib_requires;
 
       (* we put the source dir last in case there are some remaining objects files there, since
@@ -213,8 +229,9 @@ let add_c2o_rule b lib pj seq src_file target_file options =
   add_rule_source r src_file;
   add_rule_sources r seq;
   List.iter (fun dep ->
-    let lib = dep.dep_project in
-    add_rule_sources r lib.lib_bytecomp_deps
+    if dep.dep_link then
+      let lib = dep.dep_project in
+      add_rule_sources r lib.lib_bytecomp_deps
   ) pj.lib_requires;
   add_rule_temporary r temp_file
 
@@ -336,45 +353,88 @@ For camlp4 and camlp5, we should:
 with the nolink option.
 
  *)
-let add_pp_requires lib r options =
-  let pp_requires = strings_option options pp_requires in
-  List.iter (fun s ->
-    let pk_name, kind = OcpString.cut_at s ':' in
-    let exe_ext =
-      match kind with
-          "asm" -> asm_exe
-        | "byte" -> byte_exe
-        | "" ->
-          Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
-          Printf.fprintf stderr "Error: you must specify either kind 'asm' or 'byte' for package '%s'\n%!" pk_name;
-          exit 2
-        | _ ->
-          Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
-          Printf.fprintf stderr "Error: pp_requires option contains unknown kind [%s] for package '%s'\n%!" kind pk_name;
-          exit 2
-    in
-    let pk = try
-               StringMap.find pk_name !packages_by_name
-      with Not_found ->
-          Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
-          Printf.fprintf stderr "Error: unknown package '%s'\n%!" pk_name;
-          exit 2
-    in
-    try
+let add_pp_require lib s =
+  let pk_name, kind = OcpString.cut_at s ':' in
+  let exe_ext =
+    match kind with
+      "asm" -> asm_exe
+    | "byte" -> byte_exe
+    | "" ->
+      Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
+      Printf.fprintf stderr "Error: you must specify either kind 'asm' or 'byte' for package '%s'\n%!" pk_name;
+      exit 2
+    | _ ->
+      Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
+      Printf.fprintf stderr "Error: pp_requires option contains unknown kind [%s] for package '%s'\n%!" kind pk_name;
+      exit 2
+  in
+  let pk = try
+             StringMap.find pk_name !packages_by_name
+    with Not_found ->
+      Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
+      Printf.fprintf stderr "Error: unknown package '%s'\n%!" pk_name;
+      exit 2
+  in
+  let declared = ref false in
+  List.iter (fun dep ->
+    if dep.dep_project == pk then begin
+      if not dep.dep_syntax then begin
+        Printf.fprintf stderr "Warning: package %S\n%!" lib.lib_name;
+        Printf.fprintf stderr "Warning: pp dependency %S not declared as syntax\n%!" pk_name
+      end;
+
+      declared := true
+    end
+  ) lib.lib_requires;
+  if not !declared then begin
+    Printf.fprintf stderr "Warning: package %s\n%!" lib.lib_name;
+    Printf.fprintf stderr "Warning: pp dependency %S not declared\n%!" pk_name
+  end;
+
+
+  try
     match pk.lib_type with
-        ProjectProgram ->
-          add_rule_source r (find_dst_file pk.lib_dst_dir (pk_name ^ exe_ext))
-      | ProjectLibrary ->
-        let ext = if kind = "byte" then "cma" else "cmxa" in
-        add_rule_source r (find_dst_file pk.lib_dst_dir (pk_name ^ "." ^ ext))
-      | ProjectObjects -> (* TODO *) ()
-    with NoSuchFileInDir (filename, dirname) as e ->
-      Printf.fprintf stderr "BuildOCamlRules.find_dst_file: could not find %S in %S\n%!"
+      ProjectProgram ->
+        find_dst_file pk.lib_dst_dir (pk_name ^ exe_ext)
+    | ProjectLibrary ->
+      let ext = if kind = "byte" then "cma" else "cmxa" in
+      find_dst_file pk.lib_dst_dir (pk_name ^ "." ^ ext)
+    | ProjectObjects -> (* TODO *) assert false
+  with NoSuchFileInDir (filename, dirname) as e ->
+    Printf.fprintf stderr "BuildOCamlRules.find_dst_file: could not find %S in %S\n%!"
       filename dirname;
     raise e
 
-  ) pp_requires
+(* TODO: for syntax extensions:
+1/ check the "syntax" attribute.
+2/ find the corresponding package. Verify that it was provided in the
+   "requires" or "syntaxes".
+3/ if it is a program, add a dependency to the bytecode version of it,
+   set "pp" to be [ "%{program_DST_DIR}%/program.byte" ] + ppflags
+4/ if it is a set of libraries, check the libraries to find for which
+   tool they are a plugin (one of them should contain an attribute
+   "plugin_for"). Then, build the corresponding command and add it
+   to "pp".
+*)
 
+type pp = {
+  mutable pp_option : string list;
+  mutable pp_requires : BuildEngineTypes.build_file list;
+}
+
+let add_pp_requires lib r pp =
+  List.iter (fun file -> add_rule_source r file) pp.pp_requires
+
+let get_pp lib options =
+  let pp_requires = strings_option options pp_requires in
+  let pp_option = strings_option options pp_option in
+  let pp_requires =
+    List.map (add_pp_require lib) pp_requires
+  in
+  {
+    pp_option = pp_option;
+    pp_requires = pp_requires;
+  }
 
 type 'a to_sort =
     {
@@ -689,6 +749,7 @@ let move_compilation_garbage r mut_dir temp_dir kernel_name lib =
       let basename = kernel_name ^ ext in
       let src_file = File.add_basename temp_dir basename in
       let dst_file = File.add_basename dst_dir basename in
+      let _maybe_file = add_file b lib.lib_mut_dir basename in
       add_rule_command r (MoveIfExists (F src_file, F dst_file, None))
     ) exts
   in
@@ -736,8 +797,9 @@ let add_mli_source b lib pj mli_file options =
   src_files := IntMap.add mli_file.file_id mli_file !src_files;
 
   let mut_dir = mut_dir lib mli_file in
+  let ppv = get_pp lib options in
   let mli_file, force =
-    match strings_option options pp_option with
+    match ppv.pp_option with
       [] -> mli_file, Force_not
     | pp ->
         (* TODO: we should create the new_ml_file in the same subdirectory
@@ -752,7 +814,7 @@ let add_mli_source b lib pj mli_file options =
 
       let r = new_rule b lib.lib_loc new_mli_file [] in
       add_rule_command r (Execute cmd);
-      add_pp_requires lib r options;
+      add_pp_requires lib r ppv;
       add_rule_source r mli_file;
 
       new_mli_file, Force_INTF
@@ -799,8 +861,9 @@ let add_mli_source b lib pj mli_file options =
   cross_move r [ BF cmi_temp, BF cmi_file ];
   move_compilation_garbage r mut_dir mli_file.file_dir.dir_file kernel_name lib;
   List.iter (fun pd ->
-    let lib = pd.dep_project in
-    add_rule_sources r lib.lib_bytecomp_deps
+    if pd.dep_link then
+      let lib = pd.dep_project in
+      add_rule_sources r lib.lib_bytecomp_deps
   ) pj.lib_requires;
   add_rule_source r mli_file;
   add_rule_sources r seq_order;
@@ -930,8 +993,9 @@ let add_ml_source b lib pj ml_file options =
 
   end else
     let mut_dir = mut_dir lib ml_file in
+    let ppv = get_pp lib options in
     let ml_file, force =
-      match strings_option options pp_option with
+      match ppv.pp_option with
         [] -> ml_file, Force_not
       | pp ->
         (* TODO: we should create the new_ml_file in the same subdirectory
@@ -947,7 +1011,7 @@ let add_ml_source b lib pj ml_file options =
 
         let r = new_rule b lib.lib_loc new_ml_file [] in
         add_rule_command r (Execute cmd);
-        add_pp_requires lib r options;
+        add_pp_requires lib r ppv;
         add_rule_source r ml_file;
 
         new_ml_file, Force_IMPL
@@ -1114,8 +1178,9 @@ let add_ml_source b lib pj ml_file options =
 
     add_rule_sources r seq_order;
     List.iter (fun pd ->
-      let lib = pd.dep_project in
-      add_rule_sources r lib.lib_bytecomp_deps
+      if pd.dep_link then
+        let lib = pd.dep_project in
+        add_rule_sources r lib.lib_bytecomp_deps
     ) pj.lib_requires;
     add_rule_targets r gen_cmi;
   end;
@@ -1162,8 +1227,9 @@ let add_ml_source b lib pj ml_file options =
 		        (T cmi_basename, BF cmi_file) :: moves
 		    | _ -> moves);
     List.iter (fun pd ->
-      let lib = pd.dep_project in
-      add_rule_sources r lib.lib_asmcomp_deps
+      if pd.dep_link then
+        let lib = pd.dep_project in
+        add_rule_sources r lib.lib_asmcomp_deps
     ) pj.lib_requires;
     add_rule_sources r seq_order;
     add_rule_targets r (o_file :: gen_cmi);

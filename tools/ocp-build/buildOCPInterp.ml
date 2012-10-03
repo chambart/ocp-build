@@ -316,7 +316,7 @@ let define_package pj name config kind =
   let project_options = config.config_options in
   pk.package_type <- kind;
   pk.package_provides <- name;
-(*  pk.package_sources <-  config.config_files; *)
+  pk.package_sources <-  config.config_files;
  (*
    TODO: verify :pp and :nolink
 
@@ -331,9 +331,6 @@ let define_package pj name config kind =
     in
     add_project_dep pk link dep_name) config.config_requires; *)
   pk.package_options <- project_options;
-  pk.package_files <- List.map (fun (file, options) ->
-        (file, translate_options pk.package_options options)
-  ) config.config_files;
 
   List.iter (fun (s, options) ->
     let options = translate_options default_options options in

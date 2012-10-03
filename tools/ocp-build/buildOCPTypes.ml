@@ -29,7 +29,7 @@ type package = {
   package_name : string; (* basename of project *)
   mutable package_dirname : string; (* where the project files are *)
 
-  mutable package_provides : string; (* what the project provides,
+  mutable package_provides : string; (* TODO: what the project provides,
 					default "" => same as name.
 					if provides is specified, then
 					the name of the object should
@@ -37,7 +37,7 @@ type package = {
 					be an option, since it should
 					apply to modules too. *)
   mutable package_type : package_type; (* what it generates *)
-  mutable package_tag : string; (* if tags are specified, then the
+  mutable package_tag : string; (* TODO: if tags are specified, then the
 				   following rules apply when choosing
 				   among several projects providing
 				   the same name,
