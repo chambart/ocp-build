@@ -120,16 +120,16 @@ let rule_need_execution b r =
 	    match cmd with
 		Execute cmd ->
 		  Printf.bprintf cmdbuf "#command: '%s' '%s'\n"
-		    (String.concat "' '" (BuildRules.command_of_command cmd))
-		    (String.concat "' '" (List.map BuildRules.string_of_argument cmd.cmd_args));
+		    (String.concat "' '" (BuildEngineRules.command_of_command cmd))
+		    (String.concat "' '" (List.map BuildEngineRules.string_of_argument cmd.cmd_args));
 		  commands
 	      | Move (f1, f2) ->
 		Printf.bprintf cmdbuf "#move: %s %s\n"
-		  (BuildRules.string_of_argument f1) (BuildRules.string_of_argument f2);
+		  (BuildEngineRules.string_of_argument f1) (BuildEngineRules.string_of_argument f2);
 		commands
 	      | Copy (f1, f2) ->
 		Printf.bprintf cmdbuf "#copy: %s %s\n"
-		  (BuildRules.string_of_argument f1) (BuildRules.string_of_argument f2);
+		  (BuildEngineRules.string_of_argument f1) (BuildEngineRules.string_of_argument f2);
 		commands
 	      | MoveIfExists _ ->
 (* MoveIfExists() is only for non-targets ! Thus, it is not taken into account
@@ -257,7 +257,7 @@ let init b targets =
 	RULE_INACTIVE ->
 	  if verbose 4 then begin
 	    Printf.eprintf "ACTIVATING RULE\n%!";
-	    BuildRules.print_rule r;
+	    BuildEngineRules.print_rule r;
 	  end;
 	  r.rule_state <- RULE_ACTIVE;
 	  if verbose 5 then
@@ -305,7 +305,7 @@ let init b targets =
 	      if verbose 3 then begin
 		Printf.eprintf "Picking rule %d among other ones\n" r.rule_id;
 		Printf.eprintf "All rules:";
-		List.iter (fun r -> BuildRules.print_rule r) rules;
+		List.iter (fun r -> BuildEngineRules.print_rule r) rules;
 		Printf.eprintf "\n";
 	      end;
 	      activate_rule r
@@ -459,7 +459,7 @@ let print_waiting_queue q =
       List.iter (fun file ->
 	Printf.eprintf "\tTARGET %s\n%!" (file_filename file))
 	r.rule_targets;
-      List.iter BuildRules.print_indented_command r.rule_commands;
+      List.iter BuildEngineRules.print_indented_command r.rule_commands;
       IntMap.iter (fun _ f ->
 	if not f.file_exists then
 	  Printf.eprintf "\t\t%s missing\n%!" (file_filename f)
@@ -474,7 +474,7 @@ let print_waiting_queue q =
       List.iter (fun file ->
 	Printf.eprintf "\tTARGET %s\n%!" (file_filename file))
 	r.rule_targets;
-      List.iter BuildRules.print_indented_command r.rule_commands;
+      List.iter BuildEngineRules.print_indented_command r.rule_commands;
       IntMap.iter (fun _ f ->
 	if not f.file_exists then
 	  Printf.eprintf "\t\t%s missing\n%!" (file_filename f)
@@ -487,7 +487,7 @@ let print_waiting_queue q =
       List.iter (fun file ->
 	Printf.eprintf "\tTARGET %s\n%!" (file_filename file))
 	r.rule_targets;
-      List.iter BuildRules.print_indented_command r.rule_commands;
+      List.iter BuildEngineRules.print_indented_command r.rule_commands;
       IntMap.iter (fun _ f ->
 	if not f.file_exists then
 	  Printf.eprintf "\t\t%s missing\n%!" (file_filename f)
@@ -564,7 +564,7 @@ let rec next_rule b =
       if verbose 4 then
 	begin
 	  Printf.eprintf "NEXT RULE\n%!";
-	  BuildRules.print_rule r;
+	  BuildEngineRules.print_rule r;
 	  IntMap.iter (fun _ f ->
 	    if not f.file_exists then
 	      Printf.eprintf "ERROR: missing source %s\n%!" (file_filename f)
@@ -590,7 +590,7 @@ let rule_executed b r execution_status =
   if verbose 5 then
     Printf.eprintf "rule %d <- STATE EXECUTED\n" r.rule_id;
   r.rule_state <- RULE_EXECUTED;
-  let temp_dir = BuildRules.rule_temp_dir r in
+  let temp_dir = BuildEngineRules.rule_temp_dir r in
   if File.X.exists temp_dir then File.Dir.remove_all temp_dir;
   begin
     match execution_status with
@@ -637,8 +637,8 @@ let rule_executed b r execution_status =
 	    Printf.eprintf "\t\t\trule %d: missing %d -> %d (rule %d executed)\n" r2.rule_id r2.rule_missing_sources (r2.rule_missing_sources - 1) r.rule_id;
 	  r2.rule_missing_sources <- r2.rule_missing_sources - 1;
 	  if (r2.rule_missing_sources < 0) then begin
-	    BuildRules.print_rule r;
-	    BuildRules.print_rule r2;
+	    BuildEngineRules.print_rule r;
+	    BuildEngineRules.print_rule r2;
 	    exit 2
 	  end;
 (*	  Printf.eprintf "Generated %s =>\n%!" (file_filename f); *)
@@ -764,13 +764,13 @@ let load_dependency_file b loader file r_ok =
 	      if r.rule_state <> RULE_INACTIVE then begin
 		if verbose 4 then begin
 		  Printf.eprintf "Adding deps to rule %d \n%!" r.rule_id;
-		  BuildRules.print_rule r;
+		  BuildEngineRules.print_rule r;
 		end;
 		begin
                   match r.rule_state with
                     RULE_INACTIVE | RULE_WAITING -> ()
                   | _ ->
-                    failwith (Printf.sprintf "Rule %d failure with state %s" r.rule_id (BuildRules.string_of_rule_state r))
+                    failwith (Printf.sprintf "Rule %d failure with state %s" r.rule_id (BuildEngineRules.string_of_rule_state r))
                 end;
 		begin
 		  unmanaged_dependencies := [];
@@ -813,7 +813,7 @@ let execute_command b proc =
     | Some cmd -> cmd
   in
   let cmd_args =
-    (BuildRules.command_of_command cmd) @ List.map (BuildRules.argument_of_argument r) cmd.cmd_args
+    (BuildEngineRules.command_of_command cmd) @ List.map (BuildEngineRules.argument_of_argument r) cmd.cmd_args
   in
   if verbose 1 then begin
     Printf.eprintf "[%d.%d] BEGIN '%s'\n%!" r.rule_id proc.proc_step
@@ -832,7 +832,7 @@ let execute_command b proc =
   pid
 
 let new_proc r =
-  File.Dir.make_all (BuildRules.rule_temp_dir r);
+  File.Dir.make_all (BuildEngineRules.rule_temp_dir r);
 
   let proc = {
     proc_step = 0;
@@ -889,7 +889,7 @@ let command_executed b proc status =
     | Some cmd ->
       let r = proc.proc_rule in
       let cmd_args =
-        (BuildRules.command_of_command cmd) @ List.map (BuildRules.argument_of_argument r) cmd.cmd_args
+        (BuildEngineRules.command_of_command cmd) @ List.map (BuildEngineRules.argument_of_argument r) cmd.cmd_args
       in
 
       let verbose = status <> 0 || verbose 1 in
@@ -1055,23 +1055,23 @@ let parallel_loop b ncores =
 	  | Copy (f1, f2) ->
 	    if verbose 1 then
 	      Printf.eprintf "[%d.%d] cp %s %s\n%!" proc.proc_rule.rule_id proc.proc_step
-		(BuildRules.argument_of_argument r f1) (BuildRules.argument_of_argument r f2)
+		(BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2)
 	    ;
 	    Printf.fprintf b.build_log "cp %s %s\n"
-	      (BuildRules.argument_of_argument r f1) (BuildRules.argument_of_argument r f2);
+	      (BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2);
 	    begin try
-		    File.X.copy_file (BuildRules.file_of_argument r f1)
-                      (BuildRules.file_of_argument r f2)
+		    File.X.copy_file (BuildEngineRules.file_of_argument r f1)
+                      (BuildEngineRules.file_of_argument r f2)
 	      with e ->
 		Printf.eprintf "Error copying %s to %s: %s\n%!"
-                  (BuildRules.argument_of_argument r f1)
-                  (BuildRules.argument_of_argument r f2) (Printexc.to_string e);
-		if not (File.X.exists (BuildRules.file_of_argument r f1)) then
+                  (BuildEngineRules.argument_of_argument r f1)
+                  (BuildEngineRules.argument_of_argument r f2) (Printexc.to_string e);
+		if not (File.X.exists (BuildEngineRules.file_of_argument r f1)) then
 		  Printf.eprintf "\tSource file %s does not exist\n%!"
-                    (BuildRules.argument_of_argument r f1);
-		if not (File.X.exists (File.dirname (BuildRules.file_of_argument r f2))) then
+                    (BuildEngineRules.argument_of_argument r f1);
+		if not (File.X.exists (File.dirname (BuildEngineRules.file_of_argument r f2))) then
 		  Printf.eprintf "\tDestination directory %s does not exist\n%!"
-                    (BuildRules.argument_of_argument r f2);
+                    (BuildEngineRules.argument_of_argument r f2);
 		exit 2;
 	    end;
 	    execute_proc proc nslots
@@ -1079,11 +1079,11 @@ let parallel_loop b ncores =
 	  | Move (f1, f2) ->
 	    if verbose 1 then
 	      Printf.eprintf "[%d.%d] mv %s %s\n%!" proc.proc_rule.rule_id proc.proc_step
-		(BuildRules.argument_of_argument r f1) (BuildRules.argument_of_argument r f2)
+		(BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2)
 	    ;
 	    Printf.fprintf b.build_log "mv %s %s\n"
-	      (BuildRules.argument_of_argument r f1) (BuildRules.argument_of_argument r f2);
-            let target_of_rename = BuildRules.argument_of_argument r f2 in
+	      (BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2);
+            let target_of_rename = BuildEngineRules.argument_of_argument r f2 in
             if BuildMisc.os_type = Win32.WINDOWS &&
               Sys.file_exists target_of_rename then begin
                 try (* on Windows, Sys.rename will fail if target
@@ -1096,43 +1096,43 @@ let parallel_loop b ncores =
                 with e -> ()
               end;
 	    begin try
-		    Sys.rename (BuildRules.argument_of_argument r f1) target_of_rename;
+		    Sys.rename (BuildEngineRules.argument_of_argument r f1) target_of_rename;
 	      with e ->
 		Printf.eprintf "Error moving %s to %s: %s\n%!"
-                  (BuildRules.argument_of_argument r f1)
-                  (BuildRules.argument_of_argument r f2) (Printexc.to_string e);
-		if not (File.X.exists (BuildRules.file_of_argument r f1)) then
+                  (BuildEngineRules.argument_of_argument r f1)
+                  (BuildEngineRules.argument_of_argument r f2) (Printexc.to_string e);
+		if not (File.X.exists (BuildEngineRules.file_of_argument r f1)) then
 		  Printf.eprintf "\tSource file %s does not exist\n%!"
-                    (BuildRules.argument_of_argument r f1);
-		if not (File.X.exists (File.dirname (BuildRules.file_of_argument r f2))) then
+                    (BuildEngineRules.argument_of_argument r f1);
+		if not (File.X.exists (File.dirname (BuildEngineRules.file_of_argument r f2))) then
 		  Printf.eprintf "\tDestination directory %s does not exist\n%!"
-                    (BuildRules.argument_of_argument r f2);
+                    (BuildEngineRules.argument_of_argument r f2);
 		exit 2;
 	    end;
 	    execute_proc proc nslots
 
 	  | MoveIfExists (f1, f2, link) ->
 
-            if File.X.exists (BuildRules.file_of_argument r f1) then
+            if File.X.exists (BuildEngineRules.file_of_argument r f1) then
 	      begin try
 	              if verbose 1 then
 	                Printf.eprintf "[%d.%d] mv? %s %s\n%!" proc.proc_rule.rule_id proc.proc_step
-		          (BuildRules.argument_of_argument r f1)
-                          (BuildRules.argument_of_argument r f2)
+		          (BuildEngineRules.argument_of_argument r f1)
+                          (BuildEngineRules.argument_of_argument r f2)
 	              ;
 	              Printf.fprintf b.build_log "mv? %s %s\n"
-	                (BuildRules.argument_of_argument r f1)
-                        (BuildRules.argument_of_argument r f2);
+	                (BuildEngineRules.argument_of_argument r f1)
+                        (BuildEngineRules.argument_of_argument r f2);
 
-		      File.X.rename (BuildRules.file_of_argument r f1)
-                        (BuildRules.file_of_argument r f2);
+		      File.X.rename (BuildEngineRules.file_of_argument r f1)
+                        (BuildEngineRules.file_of_argument r f2);
                       match link with
                         None -> ()
                       | Some f3 ->
                         let src_file =
-                          File.to_string (BuildRules.file_of_argument r f2) in
+                          File.to_string (BuildEngineRules.file_of_argument r f2) in
                         let dst_file =
-                          File.to_string (BuildRules.file_of_argument r f3) in
+                          File.to_string (BuildEngineRules.file_of_argument r f3) in
                         try
                           if Sys.file_exists dst_file then
                             let ic = open_in dst_file in
@@ -1150,15 +1150,15 @@ let parallel_loop b ncores =
                           close_out oc
 	        with e ->
 		  Printf.eprintf "Error moving %s to %s: %s\n%!"
-                    (BuildRules.argument_of_argument r f1)
-                    (BuildRules.argument_of_argument r f2)
+                    (BuildEngineRules.argument_of_argument r f1)
+                    (BuildEngineRules.argument_of_argument r f2)
                     (Printexc.to_string e);
-		  if not (File.X.exists (BuildRules.file_of_argument r f1)) then
+		  if not (File.X.exists (BuildEngineRules.file_of_argument r f1)) then
 		    Printf.eprintf "\tSource file %s does not exist\n%!"
-                      (BuildRules.argument_of_argument r f1);
-		  if not (File.X.exists (File.dirname (BuildRules.file_of_argument r f2))) then
+                      (BuildEngineRules.argument_of_argument r f1);
+		  if not (File.X.exists (File.dirname (BuildEngineRules.file_of_argument r f2))) then
 		    Printf.eprintf "\tDestination directory %s does not exist\n%!"
-                      (File.to_string (File.dirname (BuildRules.file_of_argument r f2)));
+                      (File.to_string (File.dirname (BuildEngineRules.file_of_argument r f2)));
 		  exit 2;
 	      end;
 	    execute_proc proc nslots

@@ -95,3 +95,9 @@ let string_option options string_option =  String.concat " " (strings_option opt
 
 let get_strings_option strings_option =
   String.concat " " strings_option.option_default
+
+
+
+
+let enabled_option = new_bool_option "enabled" true
+let generated_option = new_bool_option "generated" false

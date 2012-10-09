@@ -11,13 +11,12 @@
 (*                                                                            *)
 (******************************************************************************)
 
-type force_kind =
-  Force_IMPL
-| Force_INTF
-| Force_not
+val get_pp :
+  BuildTypes.package_info ->
+  BuildOCPVariable.options ->
+  BuildOCamlTypes.pp
 
 
-type pp = {
-  mutable pp_option : string list;
-  mutable pp_requires : BuildEngineTypes.build_file list;
-}
+(* Should probably be in BuildOCamlMisc *)
+val add_pp_requires :
+  BuildEngineTypes.build_rule -> BuildOCamlTypes.pp -> unit

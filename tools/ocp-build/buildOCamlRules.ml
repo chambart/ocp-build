@@ -36,21 +36,28 @@
 
 open OcpLang
 open OcpSystem
-open BuildOCamlTypes
-open BuildRules
+
+
 open BuildMisc
 
 open BuildEngineTypes
 open BuildEngineGlobals
+open BuildEngineContext
+open BuildEngineRules
+open BuildEngineRules
+
+
+open BuildOCPVariable
 open BuildOCPTree
 open BuildOCPTypes
+
 open BuildTypes
 open BuildGlobals
 open BuildConfig
 
-open BuildEngineContext
-open BuildRules
-open BuildOCPVariable
+open BuildOCamlTypes
+open BuildOCamlVariables
+open BuildOCamlMisc
 
 let mut_dir lib src_file =
   let rec iter mut_dir file_dir =
@@ -89,18 +96,6 @@ module ProjectSorter = LinearToposort.Make(struct
 end)
 *)
 
-let byte_exe =
-  match Win32.os_type with
-     Win32.WINDOWS
-   | Win32.CYGWIN -> ".byte.exe"
-   | Win32.UNIX -> ".byte"
-
-let asm_exe =
-  match Win32.os_type with
-     Win32.WINDOWS
-   | Win32.CYGWIN -> ".asm.exe"
-   | Win32.UNIX -> ".asm"
-
 
 
 (* Within a project... *)
@@ -114,17 +109,6 @@ let cmx_files = ref []
 let cmxo_files = ref [] (* .o files generated with .cmx files *)
 let o_files = ref []
 
-let add_dst_file b dst_dir filename =
-  add_file b dst_dir (Filename.basename filename)
-
-exception NoSuchFileInDir of string * string
-
-let find_dst_file dst_dir filename =
-  try
-    find_file dst_dir (Filename.basename filename)
-  with Not_found ->
-    raise (NoSuchFileInDir (filename, dst_dir.dir_fullname))
-
 (* TODO: must do something more correct !! *)
 let ocaml_version_greater_than version options =
   let ocaml_version = string_option options ocaml_config_version in
@@ -134,7 +118,7 @@ let add_bin_annot_argument cmd options =
   if ocaml_version_greater_than "4" options then
     add_command_args cmd [S "-bin-annot" ]
 
-let command_includes lib pack_for pj =
+let command_includes lib pack_for =
   let includes =
     match lib.lib_includes with
       | Some includes -> includes
@@ -158,13 +142,13 @@ let command_includes lib pack_for pj =
 	List.iter (fun dep ->
           let lib = dep.dep_project in
           match lib.lib_type with
-              ProjectProgram (* | ProjectToplevel *) -> ()
-            | ProjectLibrary | ProjectObjects ->
+              ProgramPackage (* | ProjectToplevel *) -> ()
+            | LibraryPackage | ObjectsPackage ->
               if dep.dep_link then begin
 	        add_include_dir lib.lib_dst_dir;
 	        add_include_dir lib.lib_src_dir;
               end
-	) pj.lib_requires;
+	) lib.lib_requires;
 
       (* we put the source dir last in case there are some remaining objects files there, since
 	 we don't do any hygienic cleaning before. We don't do it because we want to be able to
@@ -301,7 +285,7 @@ let add_ml2mldep_rule lib dst_dir pack_for force src_file target_file options =
   (match !cross_arg with
       None -> ()
     | Some _ -> add_command_string cmd "-modules");
-  add_command_strings cmd (command_includes lib pack_for lib);
+  add_command_strings cmd (command_includes lib pack_for);
 (*  add_command_strings cmd (command_pp lib options); *)
   if force = Force_IMPL || bool_option_true options ml_file_option then
     add_command_strings cmd [ "-impl" ]
@@ -346,95 +330,6 @@ let add_ml2mldep_rule lib dst_dir pack_for force src_file target_file options =
 
 
 
-
-(* This can only work if the package already appears in requires.
-For camlp4 and camlp5, we should:
-- at the package creation, add all camlp4/camlp5 packages to 'requires',
-with the nolink option.
-
- *)
-let add_pp_require lib s =
-  let pk_name, kind = OcpString.cut_at s ':' in
-  let exe_ext =
-    match kind with
-      "asm" -> asm_exe
-    | "byte" -> byte_exe
-    | "" ->
-      Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
-      Printf.fprintf stderr "Error: you must specify either kind 'asm' or 'byte' for package '%s'\n%!" pk_name;
-      exit 2
-    | _ ->
-      Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
-      Printf.fprintf stderr "Error: pp_requires option contains unknown kind [%s] for package '%s'\n%!" kind pk_name;
-      exit 2
-  in
-  let pk = try
-             StringMap.find pk_name !packages_by_name
-    with Not_found ->
-      Printf.fprintf stderr "Error: package %s\n%!" lib.lib_name;
-      Printf.fprintf stderr "Error: unknown package '%s'\n%!" pk_name;
-      exit 2
-  in
-  let declared = ref false in
-  List.iter (fun dep ->
-    if dep.dep_project == pk then begin
-      if not dep.dep_syntax then begin
-        Printf.fprintf stderr "Warning: package %S\n%!" lib.lib_name;
-        Printf.fprintf stderr "Warning: pp dependency %S not declared as syntax\n%!" pk_name
-      end;
-
-      declared := true
-    end
-  ) lib.lib_requires;
-  if not !declared then begin
-    Printf.fprintf stderr "Warning: package %s\n%!" lib.lib_name;
-    Printf.fprintf stderr "Warning: pp dependency %S not declared\n%!" pk_name
-  end;
-
-
-  try
-    match pk.lib_type with
-      ProjectProgram ->
-        find_dst_file pk.lib_dst_dir (pk_name ^ exe_ext)
-    | ProjectLibrary ->
-      let ext = if kind = "byte" then "cma" else "cmxa" in
-      find_dst_file pk.lib_dst_dir (pk_name ^ "." ^ ext)
-    | ProjectObjects -> (* TODO *) assert false
-  with NoSuchFileInDir (filename, dirname) as e ->
-    Printf.fprintf stderr "BuildOCamlRules.find_dst_file: could not find %S in %S\n%!"
-      filename dirname;
-    raise e
-
-(* TODO: for syntax extensions:
-1/ check the "syntax" attribute.
-2/ find the corresponding package. Verify that it was provided in the
-   "requires" or "syntaxes".
-3/ if it is a program, add a dependency to the bytecode version of it,
-   set "pp" to be [ "%{program_DST_DIR}%/program.byte" ] + ppflags
-4/ if it is a set of libraries, check the libraries to find for which
-   tool they are a plugin (one of them should contain an attribute
-   "plugin_for"). Then, build the corresponding command and add it
-   to "pp".
-*)
-
-type pp = {
-  mutable pp_option : string list;
-  mutable pp_requires : BuildEngineTypes.build_file list;
-}
-
-let add_pp_requires lib r pp =
-  List.iter (fun file -> add_rule_source r file) pp.pp_requires
-
-let get_pp lib options =
-  let pp_requires = strings_option options pp_requires in
-  let pp_option = strings_option options pp_option in
-  let pp_requires =
-    List.map (add_pp_require lib) pp_requires
-  in
-  {
-    pp_option = pp_option;
-    pp_requires = pp_requires;
-  }
 
 type 'a to_sort =
     {
@@ -610,12 +505,12 @@ let add_cmos2byte_rule b lib linkflags cclib cmo_files o_files byte_file =
       add_command_args cmd [BF o_file]) o_files;
     if cclib <> "" then
       add_command_args cmd [S "-cclib"; S cclib ];
-    add_command_strings cmd (command_includes lib [] lib);
+    add_command_strings cmd (command_includes lib []);
     List.iter (fun pd ->
       if pd.dep_link then
         let pj = pd.dep_project in
 	match pj.lib_type with
-	    ProjectLibrary ->
+	| LibraryPackage ->
               (*
 	        List.iter (fun a_file ->
 		custom := true;
@@ -623,7 +518,7 @@ let add_cmos2byte_rule b lib linkflags cclib cmo_files o_files byte_file =
 	        ) lib.lib_clink_deps; *)
               add_command_args cmd (bytelinkflags pj);
 	      add_command_args cmd [S (pj.lib_name ^ ".cma")]
-          | ProjectObjects ->
+          | ObjectsPackage ->
 (*            Printf.eprintf "Depends on %s\n%!" pj.lib_name; *)
             add_command_args cmd (bytelinkflags pj);
 	    List.iter (fun a_file ->
@@ -664,18 +559,18 @@ let add_cmxs2asm_rule b lib linkflags cclib cmx_files cmxo_files o_files opt_fil
       add_command_args cmd [S "-cclib"; S cclib];
     List.iter (fun o_file ->
       add_command_arg cmd (BF o_file)) o_files;
-    add_command_strings cmd (command_includes lib [] lib);
+    add_command_strings cmd (command_includes lib []);
     List.iter (fun pd ->
       if pd.dep_link then
         let pj = pd.dep_project in
 	match pj.lib_type with
-	  | ProjectLibrary ->
+	  | LibraryPackage ->
             add_command_args cmd (asmlinkflags pj);
 	    List.iter (fun a_file ->
 	      add_command_arg cmd (BF a_file)
 	    ) pj.lib_clink_deps;
 	    add_command_string cmd (pj.lib_name ^ ".cmxa")
-          | ProjectObjects ->
+          | ObjectsPackage ->
             add_command_args cmd (asmlinkflags pj);
 	    List.iter (fun a_file ->
 	      add_command_arg cmd (BF a_file)
@@ -683,7 +578,7 @@ let add_cmxs2asm_rule b lib linkflags cclib cmx_files cmxo_files o_files opt_fil
 	    List.iter (fun a_file ->
 	      add_command_arg cmd (BF a_file)
 	    ) pj.lib_asm_cmx_objects;
-	  | ProjectProgram -> () (* dependency towards a preprocessor ? *)
+	  | ProgramPackage -> () (* dependency towards a preprocessor ? *)
     ) lib.lib_requires;
 
     let cmd = add_files_to_link_to_command cmd options cmx_files in
@@ -797,7 +692,7 @@ let add_mli_source b lib pj mli_file options =
   src_files := IntMap.add mli_file.file_id mli_file !src_files;
 
   let mut_dir = mut_dir lib mli_file in
-  let ppv = get_pp lib options in
+  let ppv = BuildOCamlSyntaxes.get_pp lib options in
   let mli_file, force =
     match ppv.pp_option with
       [] -> mli_file, Force_not
@@ -814,7 +709,7 @@ let add_mli_source b lib pj mli_file options =
 
       let r = new_rule b lib.lib_loc new_mli_file [] in
       add_rule_command r (Execute cmd);
-      add_pp_requires lib r ppv;
+      BuildOCamlSyntaxes.add_pp_requires r ppv;
       add_rule_source r mli_file;
 
       new_mli_file, Force_INTF
@@ -838,7 +733,7 @@ let add_mli_source b lib pj mli_file options =
       let cmd = new_command (strings_option options ocamlc_cmd) (bytecompflags pj options) in
       add_bin_annot_argument cmd options;
       add_command_args cmd [S "-c"; S "-o"; BF cmi_temp];
-      add_command_strings cmd (command_includes lib pack_for pj);
+      add_command_strings cmd (command_includes lib pack_for);
 (*      add_command_strings cmd (command_pp pj options); *)
       if force = Force_INTF || bool_option_true options mli_file_option then
         add_command_args cmd [S "-intf" ];
@@ -848,7 +743,7 @@ let add_mli_source b lib pj mli_file options =
     let cmd = new_command (strings_option options ocamlopt_cmd) (asmcompflags pj options) in
     add_bin_annot_argument cmd options;
     add_command_args cmd [S "-c"; S "-o"; BF cmi_temp];
-    add_command_strings cmd (command_includes lib pack_for pj);
+    add_command_strings cmd (command_includes lib pack_for);
     add_command_pack_args cmd pack_for;
 (*    add_command_strings cmd (command_pp pj options); *)
       if force = Force_INTF || bool_option_true options mli_file_option then
@@ -993,7 +888,7 @@ let add_ml_source b lib pj ml_file options =
 
   end else
     let mut_dir = mut_dir lib ml_file in
-    let ppv = get_pp lib options in
+    let ppv = BuildOCamlSyntaxes.get_pp lib options in
     let ml_file, force =
       match ppv.pp_option with
         [] -> ml_file, Force_not
@@ -1011,7 +906,7 @@ let add_ml_source b lib pj ml_file options =
 
         let r = new_rule b lib.lib_loc new_ml_file [] in
         add_rule_command r (Execute cmd);
-        add_pp_requires lib r ppv;
+       BuildOCamlSyntaxes.add_pp_requires r ppv;
         add_rule_source r ml_file;
 
         new_ml_file, Force_IMPL
@@ -1136,7 +1031,7 @@ let add_ml_source b lib pj ml_file options =
     let cmd = new_command (strings_option options ocamlc_cmd) (bytecompflags pj options) in
     let r = new_rule b lib.lib_loc cmo_file before_cmd in
 
-(*    let temp_dir = BuildRules.rule_temp_dir r in
+(*    let temp_dir = BuildEngineRules.rule_temp_dir r in
     let cmo_temp = File.add_basename temp_dir cmo_basename in
     let cmi_temp = File.add_basename temp_dir cmi_basename in *)
 
@@ -1146,7 +1041,7 @@ let add_ml_source b lib pj ml_file options =
     if pack_of = [] then begin
       add_command_args cmd [S "-c"; S "-o"; T cmo_basename];
       add_command_pack_args cmd pack_for;
-      add_command_strings cmd (command_includes lib pack_for pj);
+      add_command_strings cmd (command_includes lib pack_for);
 (*      add_command_strings cmd (command_pp pj options); *)
       if force = Force_IMPL || bool_option_true options ml_file_option then
         add_command_string cmd "-impl";
@@ -1174,7 +1069,7 @@ let add_ml_source b lib pj ml_file options =
 			(T cmi_basename, BF cmi_file) :: moves
 		    | _ -> moves);
 
-    move_compilation_garbage r mut_dir (BuildRules.rule_temp_dir r) kernel_name lib;
+    move_compilation_garbage r mut_dir (BuildEngineRules.rule_temp_dir r) kernel_name lib;
 
     add_rule_sources r seq_order;
     List.iter (fun pd ->
@@ -1190,7 +1085,7 @@ let add_ml_source b lib pj ml_file options =
     let r = new_rule b lib.lib_loc cmx_file before_cmd in
     add_bin_annot_argument cmd options;
 (*
-    let temp_dir = BuildRules.rule_temp_dir r in
+    let temp_dir = BuildEngineRules.rule_temp_dir r in
     let o_temp = File.add_basename temp_dir o_basename in
     let cmx_temp = File.add_basename temp_dir cmx_basename in
     let cmi_temp = File.add_basename temp_dir cmi_basename in
@@ -1199,7 +1094,7 @@ let add_ml_source b lib pj ml_file options =
     if pack_of = [] then begin
       add_command_args cmd [S "-c"; S "-o"; T cmx_basename];
       add_command_pack_args cmd pack_for;
-      add_command_strings cmd (command_includes lib pack_for pj);
+      add_command_strings cmd (command_includes lib pack_for);
 (*      add_command_strings cmd (command_pp pj options); *)
       if force = Force_IMPL ||  bool_option_true options ml_file_option then
         add_command_string cmd "-impl" ;
@@ -1245,7 +1140,7 @@ let add_ml_source b lib pj ml_file options =
 	  add_rule_time_dependency r cmo_file
       | _ -> ()
     end;
-    move_compilation_garbage r mut_dir (BuildRules.rule_temp_dir r) kernel_name lib;
+    move_compilation_garbage r mut_dir (BuildEngineRules.rule_temp_dir r) kernel_name lib;
   end;
   if pack_for = [] then begin
     cmo_files := cmo_file :: !cmo_files;
@@ -1511,11 +1406,11 @@ let add_program b lib =
     List.iter (fun dep ->
       let lib1 = dep.dep_project in
       match lib1.lib_type with
-          ProjectProgram
+          ProgramPackage
 (*        | ProjectToplevel *)
-        | ProjectObjects
+        | ObjectsPackage
           -> ()
-        | ProjectLibrary ->
+        | LibraryPackage ->
           let modules = lib1.lib_modules in
           let modules = !modules in
           StringMap.iter (fun modname _ ->
@@ -1613,9 +1508,9 @@ let add_package b pk =
       | Some _ ->
 	safe_mkdir dst_dir.dir_fullname);
   match lib.lib_type with
-      ProjectLibrary -> add_library b  lib
-      | ProjectProgram -> add_program b  lib
-      | ProjectObjects -> add_objects b  lib
+      LibraryPackage -> add_library b  lib
+      | ProgramPackage -> add_program b  lib
+      | ObjectsPackage -> add_objects b  lib
 (*      | _ -> Printf.eprintf "\tWarning: Don't know what to do with 'add_project %s'\n" lib.lib_name *)
 
 let create pj b =

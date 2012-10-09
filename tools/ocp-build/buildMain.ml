@@ -116,12 +116,12 @@ let arg_list = [
   "-time", Arg.Set time_arg, " : print timing";
 
   "-library-ocp", Arg.String (fun name ->
-    BuildAutogen.create_package name ProjectLibrary
+    BuildAutogen.create_package name LibraryPackage
       (File.of_string "."); exit 0;
   ), " <name> : auto-generate a .ocp file for a library";
 
   "-program-ocp", Arg.String (fun name ->
-    BuildAutogen.create_package name ProjectProgram
+    BuildAutogen.create_package name ProgramPackage
       (File.of_string "."); exit 0;
   ), " <name> : auto-generate a .ocp file for a library";
 
@@ -209,7 +209,7 @@ let build root_file =
 
   set_verbosity pjo.option_verbosity;
 
-  let ncores = pjo.option_ncores in
+  let ncores = pjo.option_njobs in
   let _usestdlib = pjo.option_usestdlib in
 
   let root_files = create_option root_config [ "files" ]
@@ -243,10 +243,10 @@ let build root_file =
 
   let print_package pj = Printf.eprintf "\t%s in %s (%s)\n" pj.package_name pj.package_dirname
 	(match pj.package_type with
-	    ProjectProgram -> "program"
-	  | ProjectLibrary -> "library"
+	    ProgramPackage -> "program"
+	  | LibraryPackage -> "library"
 (*	  | ProjectToplevel -> "toplevel" *)
-	  | ProjectObjects -> "objects")
+	  | ObjectsPackage -> "objects")
       in
 
     if verbose 3 || !list_projects_arg then begin
@@ -328,7 +328,7 @@ let build root_file =
 	Printf.eprintf "Error: in project \"%s\", the source filename\n"
 	  rule_name;
 	Printf.eprintf "\t\"%s\" does not exist\n" filename;
-	BuildRules.print_rule r;
+	BuildEngineRules.print_rule r;
 	exit 2
     end;
     let orphans = time2 "Sanitizing time: %.2fs\n%!" BuildEngine.sanitize b !delete_orphans_arg in

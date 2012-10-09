@@ -134,40 +134,6 @@ let incomplete_projects = ref ([] : BuildTypes.package_info list)
 
 
 
-
-open BuildOCPVariable
-
-let package_option = new_strings_option "package" ([] : string list)
-let dirname_option = new_strings_option "dirname" ([] : string list)
-let subdir_option = new_strings_option "subdir" ([] : string list)
-let cclib_option = new_strings_option "cclib" ([] : string list)
-let ccopt_option = new_strings_option "ccopt" ([] : string list)
-let cflags_option = new_strings_option "cflags" ([] : string list)
-let pp_option = new_strings_option "pp" []
-
-
-let install_interface_option = new_bool_option "install_cmi" true
-let generated_option = new_bool_option "generated" false
-let enabled_option = new_bool_option "enabled" true
-let byte_option = new_bool_option "has_byte" true
-let asm_option = new_bool_option "has_asm" true
-let pack_option = new_strings_option "pack" ([] : string list)
-let packed_option = new_strings_option "packed" ([] : string list)
-let ml_file_option = new_bool_option "ml" false
-let sort_files_option = new_bool_option "sort" false
-let mli_file_option = new_bool_option "mli" false
-let pp_requires = new_strings_option "pp_requires" []
-let no_mli_option = new_bool_option "no_mli" false
-
-let syntax_option = new_strings_option "syntax" ([] : string list)
-let syntaxes_option = new_strings_option "syntaxes" ([] : string list)
-
-let bytecomp_option = new_strings_option "bytecomp" ([] : string list)
-let bytelink_option = new_strings_option "bytelink" ([] : string list)
-let asmcomp_option = new_strings_option "asmcomp" ([] : string list)
-let asmlink_option = new_strings_option "asmlink" ([] : string list)
-let dep_option = new_strings_option "dep" ([] : string list)
-
 let rec string_of_condition cond =
   match cond with
     | IsEqualStringList (name, list) ->

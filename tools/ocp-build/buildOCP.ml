@@ -206,17 +206,17 @@ computation, this time knowing which optional packages are available.
       in
       to_set dep2;
       match pj2.package_type with
-      | ProjectLibrary
-      | ProjectObjects ->
+      | LibraryPackage
+      | ObjectsPackage ->
         List.iter (add_link_deps to_set) pj2.package_requires;
-    | ProjectProgram -> ()
+      | ProgramPackage -> ()
   in
 
   let rec add_dep dep =
     let pj2 = dep.dep_project in
     match pj2.package_type with
-      ProjectLibrary
-    | ProjectObjects ->
+    | LibraryPackage
+    | ObjectsPackage ->
       if dep.dep_link then
         List.iter
           (add_link_deps (fun dep -> dep.dep_link <- true))
@@ -225,7 +225,7 @@ computation, this time knowing which optional packages are available.
         List.iter
           (add_link_deps (fun dep -> dep.dep_syntax <- false))
           pj2.package_requires;
-    | ProjectProgram -> ()
+    | ProgramPackage -> ()
   in
   List.iter add_dep pj.package_requires;
   pj.package_requires <- !list;

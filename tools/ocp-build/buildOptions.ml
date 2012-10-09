@@ -33,7 +33,7 @@ other files. For now, it is better to declare all options here.
 open SimpleConfig
 
   type project_options = {
-    mutable option_ncores : int;
+    mutable option_njobs : int;
     mutable option_autoscan : bool;
     mutable option_verbosity : int;
     mutable option_usestdlib : bool;
@@ -49,6 +49,9 @@ open SimpleConfig
     mutable option_ocamldep : string list;
     mutable option_ocamllex : string list;
     mutable option_ocamlyacc : string list;
+
+    mutable option_installbin : string;
+    mutable option_installlib : string option;
   }
 
 let must_save_local = ref false
@@ -60,7 +63,7 @@ let arg_list = ref [
   " : save arguments in local (project) config";
 ]
 
-let ncores_descr =
+let njobs_descr =
   [ "njobs" ],
   ["Number of jobs to use in parallel on this computer"],
   int_option, 1
@@ -125,6 +128,19 @@ let ocamlyacc_descr =
   [ "ocamlyacc" ],  ["executable names to use in preference order"],
   list_option string_option, [ "ocamlyacc" ]
 
+let installbin_descr =
+  [ "installbin" ],  ["where programs should be installed"],
+  string_option, "/usr/local/bin"
+
+let installlib_descr =
+  [ "installlib" ],
+  ["where OCaml libraries should be installed";
+   "Files are installed in a subdirectory with the version of OCaml";
+   "and a sub-directory (as in the _obuild directory). By default,";
+   "the current OCaml directory.";
+],
+   option_option string_option, None
+
 module GlobalOptions = struct
 
   let homedir = try Sys.getenv "HOME" with Not_found -> "."
@@ -157,6 +173,19 @@ module GlobalOptions = struct
          option =:= n;
          arg_set := true),
        Printf.sprintf " NUM : %s" (String.concat "\n     " option_help)) ::
+      !arg_list;
+    (arg_set, option, option_descr)
+
+  let global_string_option_option option_descr =
+    let option = global_option option_descr in
+    let (option_names, option_help, _, _ ) = option_descr in
+    let arg_set = ref false in
+    arg_list :=
+      (Printf.sprintf "-%s" (String.concat ":" option_names),
+       Arg.String (fun n ->
+         option =:= Some n;
+         arg_set := true),
+       Printf.sprintf " STRING : %s" (String.concat "\n     " option_help)) ::
       !arg_list;
     (arg_set, option, option_descr)
 
@@ -206,7 +235,7 @@ module GlobalOptions = struct
       !arg_list;
     (arg_set, option, option_descr)
 
-  let ncores_setter = global_int_option ncores_descr
+  let njobs_setter = global_int_option njobs_descr
   let verbosity_setter = global_int_option verbosity_descr
   let autoscan_setter = global_bool_option autoscan_descr
   let usestdlib_setter = global_bool_option usestdlib_descr
@@ -221,6 +250,10 @@ module GlobalOptions = struct
   let ocamldep_setter = global_stringlist_option ocamldep_descr
   let ocamllex_setter = global_stringlist_option ocamllex_descr
   let ocamlyacc_setter = global_stringlist_option ocamlyacc_descr
+
+  let installbin_setter = global_string_option installbin_descr
+  let installlib_setter = global_string_option_option installlib_descr
+
 
   let load_or_create () =
     if File.X.exists global_config_file then begin
@@ -284,7 +317,7 @@ module LocalOptions = struct
           | Some v -> v
     in
 
-    let option_ncores = local_option GlobalOptions.ncores_setter in
+    let option_njobs = local_option GlobalOptions.njobs_setter in
     let option_autoscan = local_option GlobalOptions.autoscan_setter in
     let option_verbosity = local_option GlobalOptions.verbosity_setter in
     let option_usestdlib = local_option GlobalOptions.usestdlib_setter in
@@ -299,9 +332,14 @@ module LocalOptions = struct
     let option_ocamldep = local_option GlobalOptions.ocamldep_setter in
     let option_ocamllex = local_option GlobalOptions.ocamllex_setter in
     let option_ocamlyacc = local_option GlobalOptions.ocamlyacc_setter in
+
+    let option_installbin = local_option GlobalOptions.installbin_setter in
+    let option_installlib = local_option GlobalOptions.installlib_setter in
+
+
     config_file,
     {
-      option_ncores;
+      option_njobs;
       option_autoscan;
       option_verbosity;
       option_usestdlib;
@@ -315,6 +353,8 @@ module LocalOptions = struct
       option_ocamldep;
       option_ocamllex;
       option_ocamlyacc;
+      option_installbin;
+      option_installlib;
     }
 
   let save root_config =

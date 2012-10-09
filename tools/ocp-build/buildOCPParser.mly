@@ -77,9 +77,9 @@ toplevel_statements:
 ;
 
 package_type:
-  PROGRAM { ProjectProgram }
-| LIBRARY { ProjectLibrary }
-| OBJECTS { ProjectObjects }
+  PROGRAM { ProgramPackage }
+| LIBRARY { LibraryPackage }
+| OBJECTS { ObjectsPackage }
 ;
 
 toplevel_statement:

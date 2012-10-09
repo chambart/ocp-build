@@ -52,10 +52,10 @@ let create_package name ptype dirname_t =
   let oc = File.X.open_out file_t in
   Printf.fprintf oc "begin %s \"%s\"\n"
     (match ptype with
-        ProjectProgram -> "program"
-      | ProjectObjects -> "objects"
-      | ProjectLibrary -> "library"
-(*      | ProjectToplevel -> "toplevel" *)
+    | ProgramPackage -> "program"
+    | ObjectsPackage -> "objects"
+    | LibraryPackage -> "library"
+    (*      | ProjectToplevel -> "toplevel" *)
     )
     name;
   Printf.fprintf oc "   sort = true\n";

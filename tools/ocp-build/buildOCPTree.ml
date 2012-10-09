@@ -19,10 +19,10 @@ type camlpN =
   | Camlp5
 
 type package_type =
-    ProjectProgram
+| ProgramPackage
 (*  | ProjectToplevel *)
-  | ProjectLibrary
-  | ProjectObjects
+| LibraryPackage
+| ObjectsPackage
 
 and condition =
   | IsEqualStringList of string * string list

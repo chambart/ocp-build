@@ -14,12 +14,9 @@
 open OcpLang
 open OcpSystem
 open BuildOCamlTypes
+open BuildOCamlVariables
 
 let verbose = DebugVerbosity.verbose [ "B" ] "BuildOCamldep"
-
-let nopervasives = BuildOCPVariable.new_bool_option "nopervasives" false
-let nodeps_option = BuildOCPVariable.new_strings_option "nodeps" []
-let nocmxdeps_option = BuildOCPVariable.new_strings_option "noimpldeps" []
 
 let b = Buffer.create 1000
 

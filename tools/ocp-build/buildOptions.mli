@@ -14,7 +14,7 @@
 open SimpleConfig
 
   type project_options = {
-    mutable option_ncores : int;
+    mutable option_njobs : int;
     mutable option_autoscan : bool;
     mutable option_verbosity : int;
     mutable option_usestdlib : bool;
@@ -30,6 +30,9 @@ open SimpleConfig
     mutable option_ocamldep : string list;
     mutable option_ocamllex : string list;
     mutable option_ocamlyacc : string list;
+
+    mutable option_installbin : string;
+    mutable option_installlib : string option;
   }
 
 module GlobalOptions : sig
