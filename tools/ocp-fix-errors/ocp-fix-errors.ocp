@@ -10,16 +10,22 @@
 (*  contact@ocamlpro.com (http://www.ocamlpro.com/)                       *)
 (**************************************************************************)
 
+copyright = [ "INRIA" "OCamlPro" ]
+author = [ "Fabrice LE FESSANT <fabrice.le_fessant@ocamlpro.com>" ]
+licence = [ "GPLv3" ]
+
 begin library "ocp-fix-errors-lib"
   files = [
 
- "fixUtils.ml"
-  "errorLocation.ml"
+    "fixUtils.ml"
+      "errorLocation.ml"
+    "fixTypes.ml"
 
   "oCamlPattern.ml" "oCamlPatternParser.mly" "fixPattern.ml"
+
   "fixRecord.ml"
   "fixInterface.ml"
-
+  "fixUnbound.ml"
   "fixFloats.ml"  "fixExpect.ml"
 
   "fixSemi.ml"

@@ -11,6 +11,7 @@
 (*                                                                            *)
 (******************************************************************************)
 
+open FixTypes
 open OcpSystem
 open OcpLang
 include Debug.Tag(struct let tag = "fixMain" end)
@@ -110,64 +111,76 @@ let rec skip_lines linenum line_pos dir_stack lines =
             skip_lines (linenum+1) line_pos dir_stack  tail
         end
 
-let check_lines dir_stack loc lines =
+let error_handlers =
+  [
+    (
+      "Error: Some record field labels are undefined:",
+      fun loc error_line next_lines ->
+        debugln "Found an incomplete record";
+        FixRecord.fix loc.loc_loc error_line next_lines);
+    (
+      "Error: The implementation",
+      fun loc error_line next_lines ->
+              debugln "Found a non-matching interface";
+              FixInterface.fix loc.loc_loc error_line next_lines);
+    (
+      "Warning 26: unused variable",
+      fun loc error_line next_lines ->
+        debugln "Found unused variable";
+        FixUnusedVariables.fix loc.loc_loc (directory loc.loc_dir) next_lines);
+    (
+      "Warning 27: unused variable",
+      fun loc error_line next_lines ->
+        debugln "Found unused variable";
+        FixUnusedVariables.fix loc.loc_loc (directory loc.loc_dir) next_lines);
+    (
+      "Warning 12: this sub-pattern is unused",
+      fun loc error_line next_lines ->
+        debugln "Found unused pattern";
+        FixUnusedPatterns.fix loc.loc_loc (directory loc.loc_dir) next_lines);
+    (
+      "Error: This expression has type",
+      fun loc error_line next_lines ->
+        debugln "Found un-expected type";
+        FixExpect.fix loc.loc_loc error_line next_lines, "");
+
+    ( "Error: Unbound value ",
+      fun loc error_line next_lines ->
+        debugln "Found unbound value";
+        FixUnbound.fix loc error_line next_lines);
+  ]
+
+let check_lines loc lines =
   match lines with
+  |
       "Warning 8: this pattern-matching is not exhaustive." ::
         "Here is an example of a value that is not matched:" ::
         pattern_lines ->
 
-          debugln "Found a non-exhaustive pattern matching";
-          FixPattern.fix loc pattern_lines
-
-    | error_line :: next_lines
-        when
-          OcpString.starts_with error_line
-            "Error: Some record field labels are undefined:"
-          ->
-        debugln "Found an incomplete record";
-              FixRecord.fix loc error_line next_lines
-
-    | error_line :: next_lines
-        when
-          OcpString.starts_with error_line "Error: The implementation"   ->
-        debugln "Found a non-matching interface";
-              FixInterface.fix loc error_line next_lines
-
-    | error_line :: next_lines when
-        OcpString.starts_with error_line
-          "Warning 26: unused variable"
-        ||
-          OcpString.starts_with error_line
-          "Warning 27: unused variable"
-        ->
-        debugln "Found unused variable";
-            FixUnusedVariables.fix loc (directory dir_stack) next_lines
-
-    | error_line :: next_lines when
-        OcpString.starts_with error_line
-          "Warning 12: this sub-pattern is unused"
-        ->
-        debugln "Found unused pattern";
-            FixUnusedPatterns.fix loc (directory dir_stack) next_lines
-
-    | error_line :: next_lines when
-        OcpString.starts_with error_line
-          "Error: This expression has type" ->
-        debugln "Found un-expected type";
-              FixExpect.fix loc error_line next_lines, ""
-
+    debugln "Found a non-exhaustive pattern matching";
+          FixPattern.fix loc.loc_loc pattern_lines
     |
         "Error: This expression is not a function; it cannot be applied" :: _ ->
         debugln "Found a missing semi-colon";
-            FixSemi.fix loc
+          FixSemi.fix loc.loc_loc
 
     | "Error: This function is applied to too many arguments;" ::
         "maybe you forgot a `;'" :: _ ->
-        debugln "Found a missing semi-colon (two many args)";
-            FixSemi.fix_line loc
-
-    | _ ->
-        failwith "cannot fix"
+      debugln "Found a missing semi-colon (two many args)";
+            FixSemi.fix_line loc.loc_loc
+    | [] -> failwith "cannot fix"
+    | error_line :: next_lines ->
+      let rec iter handlers =
+        match handlers with
+          [] -> failwith "cannot fix"
+        | (beginning_of_error, handler) :: tail ->
+          if
+            OcpString.starts_with error_line beginning_of_error
+          then
+            handler loc error_line next_lines
+          else iter tail
+      in
+      iter error_handlers
 
 let homedir = try Sys.getenv "HOME" with Not_found -> "/"
 
@@ -185,8 +198,9 @@ let fix_next_error lines line_pos =
         assert (StringMap.find "mode" map = "compilation");
         let directory = expanse_directory (StringMap.find "default-directory" map) in
         let dir_stack, loc, lines = skip_lines 1 line_pos [directory] other_lines in
+        let loc = { loc_loc = loc; loc_dir = dir_stack } in
         debugln "found loc, next line: %s" (List.hd lines);
-        let res = check_lines dir_stack loc lines in
+        let res = check_lines loc lines in
         ErrorLocation.reset ();
         res
 
