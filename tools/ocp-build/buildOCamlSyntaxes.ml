@@ -60,6 +60,26 @@ open BuildOCamlVariables
 open BuildOCamlMisc
 
 
+let execution_dependencies pk kind =
+  let pk_name = pk.lib_name in
+  try
+    match pk.lib_type with
+    | ProgramPackage ->
+      let exe_ext = if kind = "byte" then byte_exe else asm_exe in
+      [find_dst_file pk.lib_dst_dir (pk_name ^ exe_ext)]
+    | LibraryPackage ->
+      let ext = if kind = "byte" then "cma" else "cmxa" in
+      [find_dst_file pk.lib_dst_dir (pk_name ^ "." ^ ext)]
+    | ObjectsPackage ->
+      if kind = "byte" then
+        pk.lib_cmo_objects
+      else
+        assert false (* TODO *)
+  with NoSuchFileInDir (filename, dirname) as e ->
+    Printf.fprintf stderr "BuildOCamlRules.find_dst_file: could not find %S in %S\n%!"
+      filename dirname;
+    raise e
+
 (* This can only work if the package already appears in requires.
 For camlp4 and camlp5, we should:
 - at the package creation, add all camlp4/camlp5 packages to 'requires',
@@ -68,7 +88,7 @@ with the nolink option.
  *)
 let add_pp_require lib s =
   let pk_name, kind = OcpString.cut_at s ':' in
-  let exe_ext =
+  let _exe_ext =
     match kind with
       "asm" -> asm_exe
     | "byte" -> byte_exe
@@ -103,20 +123,7 @@ let add_pp_require lib s =
     Printf.fprintf stderr "Warning: package %s\n%!" lib.lib_name;
     Printf.fprintf stderr "Warning: pp dependency %S not declared\n%!" pk_name
   end;
-
-
-  try
-    match pk.lib_type with
-    | ProgramPackage ->
-        find_dst_file pk.lib_dst_dir (pk_name ^ exe_ext)
-    | LibraryPackage ->
-      let ext = if kind = "byte" then "cma" else "cmxa" in
-      find_dst_file pk.lib_dst_dir (pk_name ^ "." ^ ext)
-    | ObjectsPackage -> (* TODO *) assert false
-  with NoSuchFileInDir (filename, dirname) as e ->
-    Printf.fprintf stderr "BuildOCamlRules.find_dst_file: could not find %S in %S\n%!"
-      filename dirname;
-    raise e
+  execution_dependencies pk kind
 
 (* TODO: for syntax extensions:
 1/ check the "syntax" attribute.
@@ -143,8 +150,9 @@ let get_pp lib options =
       List.map (add_pp_require lib) pp_requires
     in
     {
+      pp_flags = [];
       pp_option = pp_option;
-      pp_requires = pp_requires;
+      pp_requires = List.flatten pp_requires;
     }
   else
 (* Discover the syntaxes that are needed *)
@@ -176,16 +184,62 @@ let get_pp lib options =
         | ProgramPackage ->
           if not (List.memq p !preprocessor) then
             preprocessor := p :: !preprocessor
-        | LibraryPackage ->
-          assert false
-        | ObjectsPackage ->
-          assert false
+        | LibraryPackage | ObjectsPackage ->
+          if not (StringMap.mem p.lib_name !plugins_map) then begin
+            plugins_map := StringMap.add p.lib_name p !plugins_map;
+            plugins := p :: !plugins
+          end
       end
     ) pp_components;
+    Printf.eprintf "syntax for %s:\n%!" lib.lib_name;
+    List.iter (fun p ->
+      Printf.eprintf "\tpp: %s\n%!" p.lib_name
+    ) !preprocessor;
+    List.iter (fun p ->
+      Printf.eprintf "\tplugin: %s\n%!" p.lib_name
+    ) !plugins;
 
-    let pp_option = [] in
-    let pp_requires = [] in
+    let pp_flags = ref [] in
+    let pp_option = ref [] in
+    let pp_requires = ref [] in
+    begin
+      match !preprocessor with
+        [ p ] ->
+
+          if bool_option_true p.lib_options generated_option then
+            pp_option := [ p.lib_name ]
+          else begin
+            pp_requires := [ find_dst_file lib.lib_dst_dir (p.lib_name ^ ".byte") ];
+            pp_option := [
+              Printf.sprintf "%%{%s_DST_DIR}%%/%s.byte" p.lib_name p.lib_name
+            ];
+          end;
+          (* remove libraries that are already included in the preprocessor *)
+          List.iter (fun dep ->
+            if dep.dep_link then
+              plugins_map := StringMap.remove dep.dep_project.lib_name !plugins_map
+          ) p.lib_requires;
+
+          List.iter (fun p ->
+            if StringMap.mem p.lib_name !plugins_map && p.lib_sources <> [] then begin
+              pp_requires := (execution_dependencies p "byte") @ !pp_requires;
+              pp_flags := !pp_flags @
+                [ S "-I"; BD p.lib_dst_dir ] @
+                (match p.lib_type with
+                | ProgramPackage -> assert false
+                | ObjectsPackage ->
+                  List.map (fun s -> BF s) p.lib_cmo_objects
+                | LibraryPackage ->
+                  [ S (p.lib_name ^ ".cma") ])
+            end
+          ) (List.rev !plugins)
+
+      | _ ->
+        (* either no preprocessor was provided, or too many of them ! *)
+        assert false
+    end;
     {
-      pp_option = pp_option;
-      pp_requires = pp_requires;
+      pp_flags = !pp_flags;
+      pp_option = !pp_option;
+      pp_requires = !pp_requires;
     }

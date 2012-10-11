@@ -81,6 +81,7 @@ and command_argument =
   | T of string  (* temporary file in rule temporary directory *)
   | F of File.t (* File.t *)
   | BF of build_file (* build_file type *)
+  | BD of build_directory (* build_file type *)
 
 and  build_file = {
   file_id : int;

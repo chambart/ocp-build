@@ -101,15 +101,13 @@ let new_command cmd args = {
   cmd_stdout_pipe = None;
 }
 
-let command_of_command cmd =
-  List.map BuildSubst.subst cmd.cmd_command
-
 let string_of_argument arg =
   match arg with
       S s -> BuildSubst.subst s
     | T s -> "${temp}/" ^ BuildSubst.subst s
     | F f -> File.to_string f
     | BF f -> File.to_string f.file_file
+    | BD d -> d.dir_fullname
 
 let rule_temp_dir r =
   File.add_basename r.rule_context.build_dir (string_of_int r.rule_id)
@@ -120,6 +118,7 @@ let file_of_argument r arg =
     | T s -> File.add_basename (rule_temp_dir r) (BuildSubst.subst s)
     | F f -> f
     | BF f -> f.file_file
+    | BD d -> d.dir_file
 
 let argument_of_argument r arg =
   match arg with
@@ -127,6 +126,11 @@ let argument_of_argument r arg =
     | T s -> File.to_string (File.add_basename (rule_temp_dir r) (BuildSubst.subst s))
     | F f -> File.to_string f
     | BF f -> File.to_string f.file_file
+    | BD d -> d.dir_fullname
+
+
+let command_of_command cmd =
+  List.map BuildSubst.subst cmd.cmd_command
 
 let argument_of_string s = S s
 

@@ -298,6 +298,7 @@ let build root_file =
   end;
 
   let targets = ref [] in
+
   let add_project_targets lib =
     if pjo.option_bytecode then
       targets := lib.lib_byte_targets @ !targets;

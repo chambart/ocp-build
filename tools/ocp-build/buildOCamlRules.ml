@@ -176,6 +176,13 @@ let command_pp pj options =
     | pp -> ["-pp"; pp]
 *)
 
+let add_more_rule_sources lib r options =
+  let more_rule_sources = strings_option options rule_sources_option in
+  List.iter (fun s ->
+    let s = add_file lib.lib_context lib.lib_src_dir s in
+    add_rule_source r s
+  ) more_rule_sources
+
 let add_c2o_rule b lib pj seq src_file target_file options =
   let build_dir = add_directory b (Unix.getcwd ()) in
   let temp_file = BuildEngineContext.add_temp_file b build_dir target_file.file_basename in
@@ -210,6 +217,7 @@ let add_c2o_rule b lib pj seq src_file target_file options =
 	) options.options_vars;
   end;
 *)
+  add_more_rule_sources lib r options;
   add_rule_source r src_file;
   add_rule_sources r seq;
   List.iter (fun dep ->
@@ -230,6 +238,7 @@ let add_mll2ml_rule b lib pj src_file target_file options =
                 [ S "-o"; BF target_file; BF src_file])
     ]
   in
+  add_more_rule_sources lib r options;
   add_rule_source r src_file
 
 let add_mly2ml_rule b lib pj src_file ml_target_file mli_target_file options =
@@ -246,6 +255,7 @@ let add_mly2ml_rule b lib pj src_file ml_target_file mli_target_file options =
      Move (BF temp_mli, BF mli_target_file);
     ]
   in
+  add_more_rule_sources lib r options;
   add_rule_source r src_file;
   add_rule_target r mli_target_file
 
@@ -297,6 +307,7 @@ let add_ml2mldep_rule lib dst_dir pack_for force src_file target_file options =
   add_command_pipe cmd (file_filename target_file);
 
   let r = new_rule lib.lib_context lib.lib_loc target_file [Execute cmd] in
+  add_more_rule_sources lib r options;
   add_rule_source r src_file;
 (* We don't need to have all the sources available ! Actually, the computation of
   dependencies is not done on the file-system, but on the virtual image of the
@@ -436,6 +447,7 @@ let add_cmos2cma_rule b lib pj cclib cmo_files cma_file =
 
     let cmd = add_files_to_link_to_command cmd options cmo_files in
     let r = new_rule b lib.lib_loc cma_file [cmd] in
+    add_more_rule_sources lib r options;
     add_rule_sources r cmo_files;
     add_rule_sources r !cmi_files
 
@@ -477,6 +489,8 @@ let add_cmxs2cmxa_rule b lib pj cclib cmi_files cmx_files cmxo_files =
 
     let cmd = add_files_to_link_to_command cmd options cmx_files in
     let r = new_rule b lib.lib_loc cmxa_file [cmd] in
+    add_more_rule_sources lib r options;
+
     cross_move r [ F temp_cmxa.file_file, F cmxa_file.file_file;
 		   F temp_a.file_file, F a_file.file_file];
     add_rule_sources r cmx_files;
@@ -535,6 +549,8 @@ let add_cmos2byte_rule b lib linkflags cclib cmo_files o_files byte_file =
 
     let cmd = add_files_to_link_to_command cmd options cmo_files in
     let r = new_rule b lib.lib_loc byte_file [cmd] in
+    add_more_rule_sources lib r options;
+
     add_rule_sources r cmo_files;
     add_rule_sources r !cmi_files;
     add_rule_sources r o_files;
@@ -583,6 +599,8 @@ let add_cmxs2asm_rule b lib linkflags cclib cmx_files cmxo_files o_files opt_fil
 
     let cmd = add_files_to_link_to_command cmd options cmx_files in
     let r = new_rule b lib.lib_loc opt_file [cmd] in
+    add_more_rule_sources lib r options;
+
     add_rule_sources r cmx_files;
     add_rule_sources r cmxo_files;
     add_rule_sources r !cmi_files;
@@ -612,6 +630,8 @@ let add_os2a_rule b lib pj o_files a_file =
       add_command_arg cmd (BF o_file)) o_files;
     let r = new_rule b lib.lib_loc a_file
       [Execute cmd] in
+    let options = lib.lib_options in
+    add_more_rule_sources lib r options;
     add_rule_sources r o_files;
     ()
 
@@ -704,10 +724,11 @@ let add_mli_source b lib pj mli_file options =
         add_file b mut_dir (mli_file.file_basename ^ "pp")
       in
 
-      let cmd = new_command pp [ BF mli_file ]  in
+      let cmd = new_command pp (ppv.pp_flags @ [ BF mli_file ])  in
       add_command_pipe cmd (File.to_string new_mli_file.file_file);
 
       let r = new_rule b lib.lib_loc new_mli_file [] in
+      add_more_rule_sources lib r options;
       add_rule_command r (Execute cmd);
       BuildOCamlSyntaxes.add_pp_requires r ppv;
       add_rule_source r mli_file;
@@ -752,6 +773,7 @@ let add_mli_source b lib pj mli_file options =
     cmd
   in
   let r = new_rule b lib.lib_loc cmi_file [Execute cmd] in
+  add_more_rule_sources lib r options;
 
   cross_move r [ BF cmi_temp, BF cmi_file ];
   move_compilation_garbage r mut_dir mli_file.file_dir.dir_file kernel_name lib;
@@ -901,10 +923,12 @@ let add_ml_source b lib pj ml_file options =
           add_file b mut_dir (ml_file.file_basename ^ "pp")
         in
 
-        let cmd = new_command pp [ BF ml_file ]  in
+        let cmd = new_command pp (ppv.pp_flags @ [ BF ml_file ])  in
         add_command_pipe cmd (File.to_string new_ml_file.file_file);
 
         let r = new_rule b lib.lib_loc new_ml_file [] in
+        add_more_rule_sources lib r options;
+
         add_rule_command r (Execute cmd);
        BuildOCamlSyntaxes.add_pp_requires r ppv;
         add_rule_source r ml_file;
@@ -1030,6 +1054,7 @@ let add_ml_source b lib pj ml_file options =
   begin
     let cmd = new_command (strings_option options ocamlc_cmd) (bytecompflags pj options) in
     let r = new_rule b lib.lib_loc cmo_file before_cmd in
+    add_more_rule_sources lib r options;
 
 (*    let temp_dir = BuildEngineRules.rule_temp_dir r in
     let cmo_temp = File.add_basename temp_dir cmo_basename in
@@ -1083,6 +1108,7 @@ let add_ml_source b lib pj ml_file options =
   begin
     let cmd = new_command (strings_option options ocamlopt_cmd) (asmcompflags pj options) in
     let r = new_rule b lib.lib_loc cmx_file before_cmd in
+    add_more_rule_sources lib r options;
     add_bin_annot_argument cmd options;
 (*
     let temp_dir = BuildEngineRules.rule_temp_dir r in
@@ -1383,13 +1409,13 @@ let add_objects b lib =
   if bool_option_true lib.lib_options byte_option then begin
     lib.lib_byte_targets <- !cmo_files @ !cmi_files @ lib.lib_byte_targets;
     lib.lib_bytelink_deps <- !cmo_files @ lib.lib_bytelink_deps;
-    lib.lib_bytecomp_deps <- !cmo_files @ !cmi_files @ lib.lib_bytecomp_deps;
+(*    lib.lib_bytecomp_deps <- !cmo_files @ !cmi_files @ lib.lib_bytecomp_deps; *)
     lib.lib_cmo_objects <- !cmo_files @ lib.lib_cmo_objects;
   end;
   if bool_option_true lib.lib_options asm_option then begin
     lib.lib_asm_targets <- !cmx_files @ !cmi_files @ lib.lib_asm_targets;
     lib.lib_asmlink_deps <- !cmx_files @ !cmxo_files @ lib.lib_asmlink_deps;
-    lib.lib_asmcomp_deps <- !cmx_files @ !cmi_files @ lib.lib_asmcomp_deps;
+(*    lib.lib_asmcomp_deps <- !cmx_files @ !cmi_files @ lib.lib_asmcomp_deps; *)
     lib.lib_asm_cmx_objects <- !cmx_files @ lib.lib_asm_cmx_objects;
     lib.lib_asm_cmxo_objects <- !cmxo_files @ lib.lib_asm_cmxo_objects;
   end;
@@ -1436,7 +1462,7 @@ let add_program b lib =
     if bool_option_true lib.lib_options byte_option then begin
       lib.lib_byte_targets <- byte_file :: lib.lib_byte_targets;
       lib.lib_bytelink_deps <- byte_file :: lib.lib_bytelink_deps;
-      lib.lib_bytecomp_deps <- byte_file :: lib.lib_bytecomp_deps;
+(*      lib.lib_bytecomp_deps <- byte_file :: lib.lib_bytecomp_deps; *)
       lib.lib_cmo_objects <- !cmo_files @ lib.lib_cmo_objects;
     end
   end;
@@ -1450,7 +1476,7 @@ let add_program b lib =
     if bool_option_true lib.lib_options asm_option then begin
       lib.lib_asm_targets <- asm_file :: lib.lib_asm_targets;
       lib.lib_asmlink_deps <- asm_file :: lib.lib_asmlink_deps;
-      lib.lib_asmcomp_deps <- asm_file :: lib.lib_asmcomp_deps;
+(*      lib.lib_asmcomp_deps <- asm_file :: lib.lib_asmcomp_deps; *)
       lib.lib_asm_cmx_objects <- !cmx_files @ lib.lib_asm_cmx_objects;
       lib.lib_asm_cmxo_objects <- !cmxo_files @ lib.lib_asm_cmxo_objects;
     end
@@ -1488,8 +1514,6 @@ let add_package b pk =
   in
   if verbose 4 then Printf.eprintf "\tto %s\n" dst_dir.dir_fullname;
 
-  BuildSubst.putenv (Printf.sprintf "%s_SRC_DIR" pk.package_name) src_dir.dir_fullname;
-  BuildSubst.putenv (Printf.sprintf "%s_DST_DIR" pk.package_name) dst_dir.dir_fullname;
 
   let mut_dir =
     let src_dirname = File.to_string src_dir.dir_file in
@@ -1502,15 +1526,17 @@ let add_package b pk =
   in
 
   let lib = BuildGlobals.new_library b pk package_dirname src_dir dst_dir mut_dir in
+  BuildSubst.putenv (Printf.sprintf "%s_SRC_DIR" pk.package_name) src_dir.dir_fullname;
+  BuildSubst.putenv (Printf.sprintf "%s_DST_DIR" pk.package_name) dst_dir.dir_fullname;
 
   (match !cross_arg with
       None -> ()
       | Some _ ->
 	safe_mkdir dst_dir.dir_fullname);
   match lib.lib_type with
-      LibraryPackage -> add_library b  lib
-      | ProgramPackage -> add_program b  lib
-      | ObjectsPackage -> add_objects b  lib
+    LibraryPackage -> add_library b  lib
+  | ProgramPackage -> add_program b  lib
+  | ObjectsPackage -> add_objects b  lib
 (*      | _ -> Printf.eprintf "\tWarning: Don't know what to do with 'add_project %s'\n" lib.lib_name *)
 
 let create pj b =

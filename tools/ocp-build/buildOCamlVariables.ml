@@ -31,6 +31,9 @@ let asmcomp_option = new_strings_option "asmcomp" ([] : string list)
 let asmlink_option = new_strings_option "asmlink" ([] : string list)
 let dep_option = new_strings_option "dep" ([] : string list)
 
+
+let rule_sources_option = new_strings_option "rule_sources" []
+
 (* dependencies before preprocessing *)
 let pp_requires_option = new_strings_option "pp_requires" []
 

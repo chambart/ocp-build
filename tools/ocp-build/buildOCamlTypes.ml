@@ -19,5 +19,6 @@ type force_kind =
 
 type pp = {
   mutable pp_option : string list;
+  mutable pp_flags : BuildEngineTypes.command_argument list;
   mutable pp_requires : BuildEngineTypes.build_file list;
 }
