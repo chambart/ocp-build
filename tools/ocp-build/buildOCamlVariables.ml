@@ -43,6 +43,8 @@ let pp_option = new_strings_option "pp" []
 (* should files be sorted before linking ? *)
 let sort_files_option = new_bool_option "sort" false
 
+let copy_syntaxes = new_bool_option "copy_syntaxes" false
+
 (* used to implement the pack syntax *)
 let pack_option = new_strings_option "pack" ([] : string list)
 let packed_option = new_strings_option "packed" ([] : string list)

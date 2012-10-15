@@ -89,6 +89,7 @@ begin
 
   begin objects "pa_macro"
     files = [ "Camlp4Parsers/Camlp4MacroParser.ml" ]
+    requires = [ "camlp4-pa-o" ]
   end
 
 end

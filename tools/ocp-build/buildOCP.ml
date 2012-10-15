@@ -112,17 +112,15 @@ module PackageDepSorter = LinearToposort.Make(struct
   let name pd = pd.package_name
 end)
 
-(*
 module PackageLinkSorter = LinearToposort.Make(struct
   type t = package  package_dependency
   let node pd = pd.dep_project.package_node
-  let iter_edges f pd =
-    List.iter (fun pd ->
-      if pd.dep_link then
-        f pd) pd.dep_project.package_requires
+  let iter_edges f pd1 =
+    List.iter (fun pd2 ->
+      if pd2.dep_link then f pd2) pd1.dep_project.package_requires
   let name pd = pd.dep_project.package_name
 end)
-*)
+
 
 (*
 let dep_link dep =
@@ -376,11 +374,28 @@ let load_project files =
         Array.length pj.project_incomplete +
         Array.length pj.project_disabled);
   reset_package_ids pj.project_sorted;
+  (* TODO: The impact of this is that all dependencies are sorted in
+     the same order in all packages. This might, however, not be what
+     someone wants, because you might want to have a different link
+     order than the one globally inferred.  *)
   Array.iter (fun pk ->
-    pk.package_requires <- List.sort (fun dep1 dep2 ->
-      compare
-        dep1.dep_project.package_id
-        dep2.dep_project.package_id) pk.package_requires
+    if bool_option_true pk.package_options  requires_keep_order_option then
+      pk.package_requires <- PackageLinkSorter.sort pk.package_requires
+    else
+      pk.package_requires <- List.sort (fun dep1 dep2 ->
+        compare
+          dep1.dep_project.package_id
+          dep2.dep_project.package_id) pk.package_requires;
+
+    if verbose 5 then begin
+      Printf.eprintf "Package %S\n" pk.package_name;
+      List.iter (fun dp ->
+        Printf.eprintf "\t%S%s%s\n"
+          dp.dep_project.package_name
+          (if dp.dep_link then " (link)" else "")
+          (if dp.dep_syntax then " (syntax)" else "")
+      ) pk.package_requires
+    end;
   ) pj.project_sorted;
 
   reset_package_ids pj.project_incomplete;

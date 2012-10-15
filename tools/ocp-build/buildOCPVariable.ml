@@ -101,3 +101,4 @@ let get_strings_option strings_option =
 
 let enabled_option = new_bool_option "enabled" true
 let generated_option = new_bool_option "generated" false
+let requires_keep_order_option = new_bool_option "requires_keep_order" false

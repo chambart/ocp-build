@@ -165,7 +165,10 @@ let get_pp lib options =
     let pp_components = ref [] in
     List.iter (fun dep ->
       if dep.dep_syntax && List.memq dep.dep_project syntax then
-        pp_components := dep :: (List.rev dep.dep_project.lib_requires)
+        pp_components := dep :: (List.rev
+                                   (List.filter (fun dep ->
+                                     dep.dep_link
+                                    ) dep.dep_project.lib_requires))
         @ !pp_components;
     ) lib.lib_requires;
     let pp_components = List.rev !pp_components in
