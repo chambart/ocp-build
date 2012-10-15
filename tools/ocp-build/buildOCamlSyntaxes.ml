@@ -142,7 +142,20 @@ let add_pp_requires r pp =
 
 let get_pp lib options =
 (*  Printf.eprintf "get_pp %S\n%!" lib.lib_name; *)
-  let syntax = strings_option options syntax_option in
+  let syntax = match strings_option options syntax_option with
+    |  [] ->
+      if bool_option_true options copy_syntaxes then
+        List.map (fun dep -> dep.dep_project)
+          (List.filter (fun dep -> dep.dep_syntax) lib.lib_requires)
+      else
+        []
+    | syntax ->
+      List.map (fun s ->
+        try
+          StringMap.find s !packages_by_name
+        with Not_found -> assert false) syntax
+  in
+
   if syntax = [] then
     let pp_requires = strings_option options pp_requires_option in
     let pp_option = strings_option options pp_option in
@@ -154,13 +167,9 @@ let get_pp lib options =
       pp_option = pp_option;
       pp_requires = List.flatten pp_requires;
     }
+
   else
 (* Discover the syntaxes that are needed *)
-    let syntax = List.map (fun s ->
-      try
-        StringMap.find s !packages_by_name
-      with Not_found -> assert false) syntax
-    in
 (* Add the dependencies of these syntaxes *)
     let pp_components = ref [] in
     List.iter (fun dep ->
