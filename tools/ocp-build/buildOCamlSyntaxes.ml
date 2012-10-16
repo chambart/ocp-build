@@ -11,6 +11,8 @@
 (*                                                                            *)
 (******************************************************************************)
 
+let verbose = DebugVerbosity.verbose ["O"] "BuildOCamlSyntaxes"
+
 (* TODO:
 
    Currently, there is no verification that all the dependencies
@@ -181,10 +183,12 @@ let get_pp lib options =
         @ !pp_components;
     ) lib.lib_requires;
     let pp_components = List.rev !pp_components in
-    Printf.eprintf "pp_components for %s:\n%!" lib.lib_name;
-    List.iter (fun dep ->
-      Printf.eprintf "\t%s\n%!" dep.dep_project.lib_name
-    ) pp_components;
+    if verbose 4 then begin
+      Printf.eprintf "pp_components for %s:\n%!" lib.lib_name;
+      List.iter (fun dep ->
+        Printf.eprintf "\t%s\n%!" dep.dep_project.lib_name
+      ) pp_components;
+    end;
 (* Find the plugin program to use *)
     let preprocessor = ref [] in
     let plugins = ref [] in
@@ -203,13 +207,15 @@ let get_pp lib options =
           end
       end
     ) pp_components;
-    Printf.eprintf "syntax for %s:\n%!" lib.lib_name;
-    List.iter (fun p ->
-      Printf.eprintf "\tpp: %s\n%!" p.lib_name
-    ) !preprocessor;
-    List.iter (fun p ->
-      Printf.eprintf "\tplugin: %s\n%!" p.lib_name
-    ) !plugins;
+    if verbose 4 then begin
+      Printf.eprintf "syntax for %s:\n%!" lib.lib_name;
+      List.iter (fun p ->
+        Printf.eprintf "\tpp: %s\n%!" p.lib_name
+      ) !preprocessor;
+      List.iter (fun p ->
+        Printf.eprintf "\tplugin: %s\n%!" p.lib_name
+      ) !plugins;
+    end;
 
     let pp_flags = ref [] in
     let pp_option = ref [] in
