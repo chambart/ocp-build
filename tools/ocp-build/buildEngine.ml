@@ -118,7 +118,7 @@ let rule_need_execution b r =
 	| cmd :: commands ->
 	  let commands =
 	    match cmd with
-		Execute cmd ->
+	    | Execute cmd ->
 		  Printf.bprintf cmdbuf "#command: '%s' '%s'\n"
 		    (String.concat "' '" (BuildEngineRules.command_of_command cmd))
 		    (String.concat "' '" (List.map BuildEngineRules.string_of_argument cmd.cmd_args));
@@ -145,6 +145,7 @@ to rebuild to get compilation information ?
 	      | LoadDeps ( _, file, _) ->
 		Printf.bprintf cmdbuf "#loaddeps %s\n"
 		  (file_filename file); commands
+              | NeedTempDir -> commands
 	      | DynamicAction (msg, f) ->
 		let actions =
 		  try
@@ -832,8 +833,6 @@ let execute_command b proc =
   pid
 
 let new_proc r =
-  File.Dir.make_all (BuildEngineRules.rule_temp_dir r);
-
   let proc = {
     proc_step = 0;
     proc_rule = r;
@@ -1032,7 +1031,16 @@ let parallel_loop b ncores =
 	proc.proc_commands <- tail;
         let r = proc.proc_rule in
 	match cmd with
-	    Execute cmd ->
+        | NeedTempDir ->
+          let temp_dir = BuildEngineRules.rule_temp_dir r in
+          if not (File.X.exists temp_dir) then
+            File.Dir.make_all temp_dir;
+          execute_proc proc nslots
+
+	| Execute cmd ->
+              let temp_dir = BuildEngineRules.rule_temp_dir r in
+              if not (File.X.exists temp_dir) then
+                File.Dir.make_all temp_dir;
 	      proc.proc_last <- Some cmd;
 	      if verbose 2 then
 		Printf.eprintf "[%d.%d] new exec\n%!" proc.proc_rule.rule_id proc.proc_step;

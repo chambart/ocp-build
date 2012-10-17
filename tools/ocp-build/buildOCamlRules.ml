@@ -1046,7 +1046,7 @@ let add_ml_source b lib pj ml_file options =
   let (before_cmd, temp_ml_file) =
     if bool_option_true options no_mli_option then
       let temp_ml_file = T (kernel_name ^ ".ml") in
-      ([ Copy (BF ml_file, temp_ml_file)], temp_ml_file)
+      ([ NeedTempDir; Copy (BF ml_file, temp_ml_file)], temp_ml_file)
     else
       ([], BF ml_file)
   in

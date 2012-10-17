@@ -69,6 +69,7 @@ and  build_action =
   | MoveIfExists of command_argument * command_argument
     * command_argument option (* create a link ? *)
   | DynamicAction of string * (build_action list Lazy.t)
+  | NeedTempDir
 
 and build_command = {
   cmd_command : string list;

@@ -152,7 +152,7 @@ let add_command_pipe cmd filename =
 
 let print_indented_command cmd =
   match cmd with
-      Execute cmd ->
+  | Execute cmd ->
 	Printf.eprintf "\t%s %s"  (String.concat " " cmd.cmd_command) (String.concat " " (List.map string_of_argument cmd.cmd_args));
 	begin
 	  match cmd.cmd_stdout_pipe with
@@ -170,6 +170,8 @@ let print_indented_command cmd =
       Printf.eprintf "\tRename? %s to %s\n" (string_of_argument f1) (string_of_argument f2)
     | DynamicAction (s,_) ->
       Printf.eprintf "\tDynamicAction %s\n" s
+    | NeedTempDir ->
+      Printf.eprintf "\tNeedTempDir\n"
 
 let string_of_rule_state r =
 match r.rule_state with
