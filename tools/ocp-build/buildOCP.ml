@@ -429,13 +429,13 @@ let magic = magic_head ^ magic_kind ^ magic_version
 let magic_len = String.length magic
 
 let save_project_state state filename =
-  let oc = File.X.open_out filename in
+  let oc = File.X.open_out_bin filename in
   output_string oc magic;
   output_value oc (state : project);
   close_out oc
 
 let load_project_state filename =
-  let ic = File.X.open_in filename in
+  let ic = File.X.open_in_bin filename in
   let possible_magic = String.create magic_len in
   begin try
           really_input ic possible_magic 0 magic_len;

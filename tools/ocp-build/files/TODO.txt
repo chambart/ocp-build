@@ -168,3 +168,26 @@ Fix problems with atomicity of copy of files on Windows
 
 .mlpp files do not have a dependency to the version of the compiler ?
 --> changing the version of the compiler should trigger a rebuild
+
+------------------------------------------
+
+From the "Shake" paper:
+- add some time measurements on commands executed by the build system:
+  - can be used to compare the current compilation time with the
+   optimal compilation time
+  - can be used to display a nice colored graph showing which commands
+   have been executed in parallel (ocamlc, ocamlopt, ocamldep, camlp4, etc.)
+
+Some questions that "Shake" can reply to:
+- why some particular file was rebuilt ?
+- If I modify a file, what will be rebuilt ?
+- What's the most expensive file to modify ?
+- Do my dependencies follow some good practices ? (we could tag some
+   modules as "internal" and verify that they are never used outside)
+
+-----------------------------------------------
+
+Can we use ocp-build as a one-liner to call ocamlc/ocamlopt to replace
+ocamlfind ?
+
+ocp-build ocamlc -c toto.ml ?
