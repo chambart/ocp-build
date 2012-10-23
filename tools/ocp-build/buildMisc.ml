@@ -51,7 +51,7 @@ let token_list_of_filename filename lexer =
 	Printf.eprintf "Error: %s\n%!" error;
 	raise ParseError
 
-let openflags =  [Unix.O_WRONLY; Unix.O_CREAT; Unix.O_TRUNC]
+let openflags =  [Win32.O_WRONLY; Win32.O_CREAT; Win32.O_TRUNC; Win32.O_BINARY]
 
 let os_type = Win32.os_type
 
@@ -215,11 +215,11 @@ let create_process list stdout stderr =
     | cmd :: args ->
       let stdout_fd = match stdout with
 	  None -> Unix.stdout
-	| Some filename -> Unix.openfile filename openflags 0o644
+	| Some filename -> Win32.openfile filename openflags 0o644
       in
       let stderr_fd = match stderr with
 	  None -> Unix.stderr
-	| Some filename -> Unix.openfile filename openflags 0o644
+	| Some filename -> Win32.openfile filename openflags 0o644
       in
       let error_handler e =
         Printf.eprintf "Error while executing subprocess\n";

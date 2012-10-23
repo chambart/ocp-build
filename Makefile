@@ -30,6 +30,7 @@ ocp-build/ocp-build.boot: boot/ocp-build.boot
 
 WIN32_FILES= \
   libs/stubs/win32/win32_waitpids_c.c \
+  libs/stubs/win32/win32_open_c.c \
   libs/stubs/win32/win32_fileinfo_c.c
 
 ocp-build/win32_c.c: $(WIN32_FILES)
