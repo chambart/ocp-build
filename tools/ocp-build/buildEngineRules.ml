@@ -12,21 +12,9 @@
 (******************************************************************************)
 
 open OcpLang
-(*
-open OcpSystem
 
-open BuildMisc
-*)
 open BuildEngineTypes
 open BuildEngineGlobals
-(* open BuildEngineContext *)
-
-(*
-open BuildOCPTypes
-open BuildTypes
-open BuildGlobals
-open BuildConfig
-*)
 
 let verbose =
   DebugVerbosity.verbose [ "B" ] "BuildRules"

@@ -12,7 +12,7 @@
 (******************************************************************************)
 
 (* open SafeCaml *)
-open OcpSystem
+(* open OcpSystem *)
 
 exception LocalNotFound
 let not_found = LocalNotFound

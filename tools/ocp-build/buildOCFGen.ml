@@ -17,7 +17,7 @@ projects *)
 
 
 open OcpLang
-open OcpSystem
+(* open OcpSystem *)
 
 open BuildConfig
 open BuildOCPTypes

@@ -979,8 +979,15 @@ let parallel_loop b ncores =
              let pids = Array.of_list !list in
              BuildMisc.waitpids (Array.length pids) pids
            else Unix.wait () in
+	let status =
+	  match status with
+	    | Unix.WEXITED status -> Some status
+	    | Unix.WSIGNALED signal -> Some (-100-signal)
+	    | Unix.WSTOPPED _ -> None
+	in
 	match status with
-	  | Unix.WEXITED status ->
+	    None -> nslots
+	  | Some status ->
 	    begin
 	      try
 		let proc = IntMap.find pid !slots in
@@ -1009,11 +1016,11 @@ let parallel_loop b ncores =
 		  execute_proc proc (nslots + 1) (* we just freeed a slot *)
 	      with Not_found -> nslots
 	    end
-	  | _ -> nslots (* We don't care about other signals *)
       with e ->
-	if verbose 4 then
-	  Printf.eprintf "waiting loop: exception %s\n%!" (Printexc.to_string e);
-	nslots
+	  (*	if verbose 4 then *)
+	Printf.eprintf "Error in waiting loop: exception %s\n%!" (Printexc.to_string e);
+	(* nslots *)
+	exit 2
     in
     iter nslots
 

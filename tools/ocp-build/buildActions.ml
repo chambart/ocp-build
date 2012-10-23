@@ -13,7 +13,6 @@
 
 
 open OcpLang
-open OcpSystem
 
 open BuildGlobals
 open BuildOCPTypes

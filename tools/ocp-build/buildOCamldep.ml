@@ -12,7 +12,7 @@
 (******************************************************************************)
 
 open OcpLang
-open OcpSystem
+(* open OcpSystem *)
 open BuildOCamlTypes
 open BuildOCamlVariables
 

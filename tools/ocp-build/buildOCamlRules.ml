@@ -35,7 +35,7 @@
 *)
 
 open OcpLang
-open OcpSystem
+(* open OcpSystem *)
 
 
 open BuildMisc
@@ -76,7 +76,7 @@ let mut_dir lib src_file =
       let subdir = Filename.concat mut_dir.dir_fullname file_dir.dir_basename
       in
       if not (Sys.file_exists subdir) then
-        Unix.safe_mkdir subdir 0o755;
+        OcpUnix.safe_mkdir subdir 0o755;
       add_directory lib.lib_context subdir
   in
   iter lib.lib_mut_dir  src_file.file_dir
