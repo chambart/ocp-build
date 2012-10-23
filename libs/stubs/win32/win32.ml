@@ -25,16 +25,22 @@ external waitpids : int -> int array -> int * Unix.process_status
   = "win32_waitpids_ml"
 
 
-let rec waitpid1 pid =
-   let (_, status) = Unix.waitpid [] pid in
-   match status with
-     Unix.WEXITED n -> n
-   | _ -> waitpid1 pid
+(* a wrapper around both Unix and Win32 calls *)
+external waitpid : Unix.wait_flag list -> int -> int * Unix.process_status
+                 = "win32_waitpid_ml"
 
-let rec waitpid pid =
+
+let rec waitpid1 pid =
+   let (_, status) = waitpid [] pid in
+   match status with
+     | Unix.WEXITED n -> n
+     | Unix.WSIGNALED n -> -n
+     | Unix.WSTOPPED n -> -1000-n
+
+let rec safe_waitpid pid =
    try
      waitpid1 pid
-   with Unix.Unix_error (Unix.EINTR, _, _) -> waitpid pid
+   with Unix.Unix_error (Unix.EINTR, _, _) -> safe_waitpid pid
 
 let command argv =
 (*    Printf.fprintf stderr "exec %s\n%!" filename; *)
@@ -46,15 +52,11 @@ let command argv =
                 (Printexc.to_string e) Sys.argv.(0);
               exit 2
     in
-    let status = waitpid pid in
+    let status = safe_waitpid pid in
 (*    Printf.fprintf stderr "waitpid returned %d\n%!" status; *)
     status
 
 let simulate_exec argv =
    let status = command argv in
    exit status
-
-(* a wrapper around both Unix and Win32 calls *)
-external waitpid : Unix.wait_flag list -> int -> int * Unix.process_status
-                 = "win32_waitpid"
 

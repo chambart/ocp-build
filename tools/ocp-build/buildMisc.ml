@@ -235,7 +235,7 @@ let create_process list stdout stderr =
 let rec wait_command pid =
   try
     let rec iter pid =
-      let (_, status) = Unix.waitpid [] pid in
+      let (_, status) = Win32.waitpid [] pid in
       match status with
 	  Unix.WEXITED n -> n
 	| _ -> iter pid

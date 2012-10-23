@@ -95,8 +95,14 @@ CAMLprim value win32_waitpids_ml(value ncount_v, value pid_reqs_v){
 
 #endif
 
+#ifdef _WIN32
+extern value win_waitpid(value vflags, value vpid_req);
+#else
+extern value unix_waitpid(value vflags, value vpid_req);
+#endif
 
-value win32_waitpid(value vflags, value vpid_req)
+
+value win32_waitpid_ml(value vflags, value vpid_req)
 {
 #ifdef _WIN32
   return win_waitpid(vflags, vpid_req);
