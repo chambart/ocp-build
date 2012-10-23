@@ -23,3 +23,6 @@ val waitpid : int -> int
 
 val command : string array -> int
 val simulate_exec : string array -> 'a
+
+external waitpid : Unix.wait_flag list -> int -> int * Unix.process_status
+                 = "win32_waitpid"

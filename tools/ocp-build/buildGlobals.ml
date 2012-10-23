@@ -31,6 +31,7 @@ let distclean_arg = ref false
 let fake_arg = ref false
 let save_config_arg = ref false
 
+let use_pp = ref false
 let stop_on_error_arg = ref true
 let cross_arg = ref (Some "X" : string option)
 let verbosity_arg = ref (None : int option)

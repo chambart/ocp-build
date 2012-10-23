@@ -21,14 +21,17 @@
 #include <windows.h>
 #include <sys/types.h>
 
-
 #endif
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
-#include <caml/unixsupport.h>
 #include <caml/memory.h>
 #include <caml/signals.h>
+
+#ifndef CAML_UNIXSUPPORT_H
+#include <caml/unixsupport.h>
+#define CAML_UNIXSUPPORT_H
+#endif
 
 #ifdef _WIN32
 

@@ -106,6 +106,8 @@ let arg_list = [
   "-k", Arg.Clear stop_on_error_arg, " : continue after errors";
   "-fake", Arg.Set fake_arg, " : fake actions, do not execute them";
 
+  "-use-pp", Arg.Set use_pp, " : force use of -pp";
+
   "-list-projects", Arg.Set list_projects_arg, " : list projects";
   "-list-targets", Arg.Unit (fun _ ->
     list_byte_targets_arg := true;

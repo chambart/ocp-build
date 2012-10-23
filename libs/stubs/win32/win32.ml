@@ -54,5 +54,7 @@ let simulate_exec argv =
    let status = command argv in
    exit status
 
-
+(* a wrapper around both Unix and Win32 calls *)
+external waitpid : Unix.wait_flag list -> int -> int * Unix.process_status
+                 = "win32_waitpid"
 
