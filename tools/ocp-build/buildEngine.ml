@@ -817,8 +817,11 @@ let execute_command b proc =
     (BuildEngineRules.command_of_command cmd) @ List.map (BuildEngineRules.argument_of_argument r) cmd.cmd_args
   in
   if verbose 1 then begin
-    Printf.eprintf "[%d.%d] BEGIN '%s'\n%!" r.rule_id proc.proc_step
-      (term_escape (String.concat "' '" cmd_args));
+    Printf.eprintf "[%d.%d] BEGIN '%s' %s\n%!" r.rule_id proc.proc_step
+      (term_escape (String.concat "' '" cmd_args))
+    (match cmd.cmd_stdout_pipe with
+      None -> ""
+      | Some filename -> Printf.sprintf "> '%s'" filename);
   end;
   Printf.fprintf b.build_log "'%s' %s\n"
     (String.concat "' '" cmd_args)
