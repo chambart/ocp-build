@@ -1502,7 +1502,7 @@ let add_package b pk =
   in
 
   let dst_dir =
-    if bool_option_true pk.package_options generated_option then src_dir else
+    if already_installed then src_dir else
       match !cross_arg with
 	  None -> src_dir
         | Some arch ->
@@ -1510,7 +1510,7 @@ let add_package b pk =
 	    Filename.concat b.build_dir_filename pk.package_name
         (*	  Filename.concat src_dir.dir_fullname build_dir_basename *)
 	  in
-	  if not (already_installed || Sys.file_exists dirname) then
+	  if not (Sys.file_exists dirname) then
 	    safe_mkdir dirname;
 	  add_directory b dirname
   in
@@ -1518,12 +1518,13 @@ let add_package b pk =
 
 
   let mut_dir =
+    if already_installed then src_dir else
     let src_dirname = File.to_string src_dir.dir_file in
     let mut_dirname =
       Filename.concat
         (Filename.concat b.build_dir_filename "_mutable_tree") src_dirname
     in
-    if not (already_installed || Sys.file_exists mut_dirname) then 
+    if not (Sys.file_exists mut_dirname) then 
       safe_mkdir mut_dirname;
     add_directory b mut_dirname
   in
