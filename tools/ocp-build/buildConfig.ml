@@ -84,8 +84,13 @@ let rec find_in_PATH command path =
       try
 	check_command_exists filename
       with _ ->
-	find_in_PATH command path
-
+	if Win32.os_type = Win32.WINDOWS || Win32.os_type = Win32.CYGWIN then
+	  try
+	    check_command_exists (filename ^ ".exe")
+	  with _ ->
+	    find_in_PATH command path
+	else
+	  find_in_PATH command path
 
 let verbose = DebugVerbosity.verbose [ "B" ] "BuildConfig"
 
