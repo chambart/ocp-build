@@ -1071,112 +1071,106 @@ let parallel_loop b ncores =
 	    execute_proc proc nslots
 
 	  | Copy (f1, f2) ->
+	    let fa1 = BuildEngineRules.argument_of_argument r f1 in
+	    let fa2 = BuildEngineRules.argument_of_argument r f2 in
+	    let ff1 = BuildEngineRules.file_of_argument r f1 in
+	    let ff2 = BuildEngineRules.file_of_argument r f2 in
+
 	    if verbose 1 then
-	      Printf.eprintf "[%d.%d] cp %s %s\n%!" proc.proc_rule.rule_id proc.proc_step
-		(BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2)
-	    ;
-	    Printf.fprintf b.build_log "cp %s %s\n"
-	      (BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2);
+	      Printf.eprintf "[%d.%d] cp %s %s\n%!" 
+		proc.proc_rule.rule_id proc.proc_step
+		fa1 fa2;
+	    Printf.fprintf b.build_log "cp %s %s\n" fa1 fa2;
 	    begin try
-		    File.X.copy_file (BuildEngineRules.file_of_argument r f1)
-                      (BuildEngineRules.file_of_argument r f2)
+		    File.X.copy_file ff1 ff2
 	      with e ->
-		Printf.eprintf "Error copying %s to %s: %s\n%!"
-                  (BuildEngineRules.argument_of_argument r f1)
-                  (BuildEngineRules.argument_of_argument r f2) (Printexc.to_string e);
-		if not (File.X.exists (BuildEngineRules.file_of_argument r f1)) then
-		  Printf.eprintf "\tSource file %s does not exist\n%!"
-                    (BuildEngineRules.argument_of_argument r f1);
-		if not (File.X.exists (File.dirname (BuildEngineRules.file_of_argument r f2))) then
-		  Printf.eprintf "\tDestination directory %s does not exist\n%!"
-                    (BuildEngineRules.argument_of_argument r f2);
+		Printf.eprintf "Error copying %s to %s: %s\n%!" fa1 fa2
+		  (Printexc.to_string e);
+		if not (File.X.exists ff1) then
+		  Printf.eprintf "\tSource file %s does not exist\n%!" fa1;
+		if not (File.X.exists (File.dirname ff2)) then
+		  Printf.eprintf 
+		    "\tDestination directory of %s does not exist\n%!"
+                    fa2;
 		exit 2;
 	    end;
 	    execute_proc proc nslots
 
 	  | Move (f1, f2) ->
+	    let fa1 = BuildEngineRules.argument_of_argument r f1 in
+	    let fa2 = BuildEngineRules.argument_of_argument r f2 in
+	    let ff1 = BuildEngineRules.file_of_argument r f1 in
+	    let ff2 = BuildEngineRules.file_of_argument r f2 in
+
 	    if verbose 1 then
-	      Printf.eprintf "[%d.%d] mv %s %s\n%!" proc.proc_rule.rule_id proc.proc_step
-		(BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2)
-	    ;
-	    Printf.fprintf b.build_log "mv %s %s\n"
-	      (BuildEngineRules.argument_of_argument r f1) (BuildEngineRules.argument_of_argument r f2);
-            let target_of_rename = BuildEngineRules.argument_of_argument r f2 in
-            if BuildMisc.os_type = Win32.WINDOWS &&
-              Sys.file_exists target_of_rename then begin
-                try (* on Windows, Sys.rename will fail if target
-                       exists.  This breaks atomicity of rename, so
-                       using -njobs > 1 might fail on Windows. There
-                       is an atomic rename available on Windows too,
-                       but only versions > XP (we should use it in the
-                       future). *)
-                  Sys.remove target_of_rename;
-                with e -> ()
-              end;
+	      Printf.eprintf "[%d.%d] mv %s %s\n%!" 
+		proc.proc_rule.rule_id proc.proc_step
+		fa1 fa2;
+
+	    Printf.fprintf b.build_log "mv %s %s\n" fa1 fa2;
 	    begin try
-		    Sys.rename (BuildEngineRules.argument_of_argument r f1) target_of_rename;
+		    BuildMisc.rename fa1 fa2;
 	      with e ->
 		Printf.eprintf "Error moving %s to %s: %s\n%!"
-                  (BuildEngineRules.argument_of_argument r f1)
-                  (BuildEngineRules.argument_of_argument r f2) (Printexc.to_string e);
-		if not (File.X.exists (BuildEngineRules.file_of_argument r f1)) then
+                  (fa1)
+                  (fa2) (Printexc.to_string e);
+		if not (File.X.exists (ff1)) then
 		  Printf.eprintf "\tSource file %s does not exist\n%!"
-                    (BuildEngineRules.argument_of_argument r f1);
-		if not (File.X.exists (File.dirname (BuildEngineRules.file_of_argument r f2))) then
+                    (fa1);
+		if not (File.X.exists (File.dirname (ff2))) then
 		  Printf.eprintf "\tDestination directory %s does not exist\n%!"
-                    (BuildEngineRules.argument_of_argument r f2);
+                    (fa2);
 		exit 2;
 	    end;
 	    execute_proc proc nslots
 
 	  | MoveIfExists (f1, f2, link) ->
+	    let fa1 = BuildEngineRules.argument_of_argument r f1 in
+	    let fa2 = BuildEngineRules.argument_of_argument r f2 in
+	    let ff1 = BuildEngineRules.file_of_argument r f1 in
+	    let ff2 = BuildEngineRules.file_of_argument r f2 in
 
-            if File.X.exists (BuildEngineRules.file_of_argument r f1) then
+            if File.X.exists ff1 then
 	      begin try
 	              if verbose 1 then
-	                Printf.eprintf "[%d.%d] mv? %s %s\n%!" proc.proc_rule.rule_id proc.proc_step
-		          (BuildEngineRules.argument_of_argument r f1)
-                          (BuildEngineRules.argument_of_argument r f2)
-	              ;
-	              Printf.fprintf b.build_log "mv? %s %s\n"
-	                (BuildEngineRules.argument_of_argument r f1)
-                        (BuildEngineRules.argument_of_argument r f2);
+	                Printf.eprintf "[%d.%d] mv? %s %s\n%!" 
+			  proc.proc_rule.rule_id proc.proc_step
+		          fa1 fa2;
 
-		      File.X.rename (BuildEngineRules.file_of_argument r f1)
-                        (BuildEngineRules.file_of_argument r f2);
+	              Printf.fprintf b.build_log "mv? %s %s\n" fa1 fa2;
+
+		      BuildMisc.rename fa1 fa2;
                       match link with
-                        None -> ()
-                      | Some f3 ->
-                        let src_file =
-                          File.to_string (BuildEngineRules.file_of_argument r f2) in
-                        let dst_file =
-                          File.to_string (BuildEngineRules.file_of_argument r f3) in
-                        try
-                          if Sys.file_exists dst_file then
-                            let ic = open_in dst_file in
-                            try
-                              let line = input_line ic in
-                              close_in ic;
-                              if line <> src_file then raise Not_found
-                            with e ->
-                              close_in ic;
-                              raise e
-                          else raise Not_found
-                        with _ ->
-                          let oc = open_out dst_file in
-                          output_string oc src_file;
-                          close_out oc
-	        with e ->
+                        | None -> ()
+			| Some f3 ->
+                          let src_file = File.to_string ff2 in
+                          let dst_file =
+                            File.to_string (BuildEngineRules.file_of_argument r f3) in
+                          try
+                            if Sys.file_exists dst_file then begin
+                              let ic = open_in dst_file in
+                              try
+				let line = input_line ic in
+				close_in ic;
+				if line <> src_file then raise Not_found
+                              with e ->
+				close_in ic;
+				raise e
+			    end
+			    else raise Not_found
+                          with _ ->
+			    let oc = open_out dst_file in
+			    output_string oc src_file;
+			    close_out oc
+		with e ->
 		  Printf.eprintf "Error moving %s to %s: %s\n%!"
-                    (BuildEngineRules.argument_of_argument r f1)
-                    (BuildEngineRules.argument_of_argument r f2)
-                    (Printexc.to_string e);
-		  if not (File.X.exists (BuildEngineRules.file_of_argument r f1)) then
+		    fa1 fa2 (Printexc.to_string e);
+		  if not (File.X.exists (ff1)) then
 		    Printf.eprintf "\tSource file %s does not exist\n%!"
-                      (BuildEngineRules.argument_of_argument r f1);
-		  if not (File.X.exists (File.dirname (BuildEngineRules.file_of_argument r f2))) then
+		      (fa1);
+		  if not (File.X.exists (File.dirname (ff2))) then
 		    Printf.eprintf "\tDestination directory %s does not exist\n%!"
-                      (File.to_string (File.dirname (BuildEngineRules.file_of_argument r f2)));
+		      (File.to_string (File.dirname (ff2)));
 		  exit 2;
 	      end;
 	    execute_proc proc nslots
