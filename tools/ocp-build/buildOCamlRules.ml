@@ -860,8 +860,6 @@ let copy_mli_if_needed b mut_dir mll_file kernel_name =
 	  Printf.fprintf stderr "cp %s %s [unexisting] \n%!"
 	    (File.to_string mli_file) (File.to_string tmp_mli_file);
         File.X.write_of_string tmp_mli_file mli_content;
-        if not (Sys.file_exists "_obuild/_mutable_tree/libs/ocamlpro/system/simpleConfig.mli") then
-          Printf.eprintf "not yet created\n%!";
       end
     end (* else
       Printf.eprintf "MLI FILE %S does not exist\n%!"
@@ -1500,6 +1498,9 @@ let add_package b pk =
   let src_dir = add_directory b (absolute_filename package_dirname) in
   if verbose 4 then Printf.eprintf "\tfrom %s\n" src_dir.dir_fullname;
 
+  let already_installed = bool_option_true pk.package_options generated_option
+  in
+
   let dst_dir =
     if bool_option_true pk.package_options generated_option then src_dir else
       match !cross_arg with
@@ -1509,7 +1510,8 @@ let add_package b pk =
 	    Filename.concat b.build_dir_filename pk.package_name
         (*	  Filename.concat src_dir.dir_fullname build_dir_basename *)
 	  in
-	  if not (Sys.file_exists dirname) then safe_mkdir dirname;
+	  if not (already_installed || Sys.file_exists dirname) then
+	    safe_mkdir dirname;
 	  add_directory b dirname
   in
   if verbose 4 then Printf.eprintf "\tto %s\n" dst_dir.dir_fullname;
@@ -1521,7 +1523,8 @@ let add_package b pk =
       Filename.concat
         (Filename.concat b.build_dir_filename "_mutable_tree") src_dirname
     in
-    if not (Sys.file_exists mut_dirname) then safe_mkdir mut_dirname;
+    if not (already_installed || Sys.file_exists mut_dirname) then 
+      safe_mkdir mut_dirname;
     add_directory b mut_dirname
   in
 
