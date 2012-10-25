@@ -286,9 +286,9 @@ let rec safe_mkdir filename =
     | _ ->
       Unix.mkdir filename 0o755
 
-let rename f1 f2 =           
+let rename fa1 fa2 =           
   let target_of_rename = fa2 in
-  if BuildMisc.os_type = Win32.WINDOWS &&
+  if Win32.os_type = Win32.WINDOWS &&
     Sys.file_exists fa2 then begin
       try (* on Windows, Sys.rename will fail if target
              exists.  This breaks atomicity of rename, so
