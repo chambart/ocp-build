@@ -1,0 +1,13 @@
+begin library "ocp-type-from-loc-lib"
+  files = [
+  "printer.ml"
+  "retype.mli"
+  "retype.ml" ]
+  requires = [ "ocaml-compiler" ]
+end
+
+begin program "ocp-type-from-loc"
+  files = [
+  "main.ml" ]
+  requires = [ "ocp-type-from-loc-lib" ]
+end
