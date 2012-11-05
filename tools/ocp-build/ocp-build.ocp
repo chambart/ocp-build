@@ -108,7 +108,13 @@ begin library "ocp-build-ocaml-plugin"
   requires = [ "ocp-build-lib" ]
 end
 
+begin program "ocp-build-infer-env"
 
+  files = [ "buildOCamlEnv.ml" ]
+  requires = [ "ocp-build-ocaml" "ocp-build-misc" ]
+
+
+end
 
 begin library "ocplib-oasis"
   files = [ "oasisParser.ml" ]
