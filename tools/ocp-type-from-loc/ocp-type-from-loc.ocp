@@ -3,7 +3,7 @@ begin library "ocp-type-from-loc-lib"
   "printer.ml"
   "retype.mli"
   "retype.ml" ]
-  requires = [ "ocaml-compiler" ]
+  requires = [ "ocaml-driver" ]
 end
 
 begin program "ocp-type-from-loc"

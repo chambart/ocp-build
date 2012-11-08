@@ -60,6 +60,7 @@ install:
 	cp _obuild/ocp-fix-errors/ocp-fix-errors.asm $(BINDIR)/ocp-fix-errors
 	cp _obuild/ocp-edit-mode/ocp-edit-mode.asm $(BINDIR)/ocp-edit-mode
 	cp _obuild/ocp-spotter/ocp-spotter.asm $(BINDIR)/ocp-spotter
+	cp _obuild/ocp-type-from-loc/ocp-type-from-loc.asm $(BINDIR)/ocp-type-from-loc
 	rm -rf $(TYPEREXDIR)/ocp-edit-mode
 	cp -dpR tools/ocp-edit-mode/files $(TYPEREXDIR)/ocp-edit-mode
 
