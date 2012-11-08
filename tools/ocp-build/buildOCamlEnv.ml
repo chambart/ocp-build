@@ -11,20 +11,41 @@
 (*                                                                            *)
 (******************************************************************************)
 
+(* STATUS:
+   - there is an ambiguity between "vmthreads-stdlib" and "stdlib", because
+     they exports the same interface. However, "vmthreads-stdlib" does not
+     exist in native code.
+   - there is a cycle of dependencies between "vmthreads-unix" and
+     "vmthreads-stdlib", because Pervasives uses types from Unix.
+   - we should extract common subsets, give them a name (maybe it can
+     be infered automatically), and use that name when possible.
+*)
+
+(* TODO:
+  - implement use of "provide" in ocp-build
+  - implement supersets : a library can provide a superset of another
+     library.
+  - define meta-libraries, taking sub-parts of other libraries, so that
+     they can be defined as common subsets
+*)
+
+
 open BuildObjectInspector
 
 type library = {
   mutable lib_name : string;
-  mutable lib_provide : string option;
+  lib_basename : string;
+  mutable lib_provide : string list;
   lib_dirname : string;
 
   mutable lib_asm_exists : bool;
-  mutable lib_asm_mods : (string * Digest.t) list;
-  mutable lib_asm_deps : (string * Digest.t) list;
-
   mutable lib_byte_exists : bool;
-  mutable lib_byte_deps : (string * Digest.t) list;
   mutable lib_byte_mods : (string * Digest.t) list;
+  mutable lib_asm_mods : (string * Digest.t) list;
+  mutable lib_deps : (string * Digest.t * bool) list;
+
+  mutable lib_includes : library list;
+  mutable lib_included_in : library list;
 }
 
 let dirs = ref []
@@ -33,35 +54,36 @@ let dirs = ref []
 let null_digest = (String.make 16 '\000' : Digest.t)
 
 let filenames = Hashtbl.create 113
-let asm_mods = Hashtbl.create 113
+let mods = Hashtbl.create 113
 let libnames = ref StringMap.empty
 
-let add_asm_mod modname digest lib =
+let add_mod modname digest native lib =
   try
-    let libs = Hashtbl.find asm_mods (modname, digest) in
+    let libs = Hashtbl.find mods (modname, digest, native) in
     match !libs with
       lib1 :: _ when lib1 == lib -> ()
     | _ -> libs := lib :: !libs
   with Not_found ->
-    Hashtbl.add asm_mods (modname, digest) (ref [lib])
+    Hashtbl.add mods (modname, digest, native) (ref [lib])
 
 let add_asm_library lib filename =
   match BuildObjectInspector.load_object_file filename with
   | CMXA desc ->
     lib.lib_asm_exists <- true;
     let cmx_deps = Hashtbl.create 113 in
-    let add_cmx_dep key =
-      if not (Hashtbl.mem cmx_deps key) then begin
-        Hashtbl.add cmx_deps key ();
-        lib.lib_asm_deps <- key :: lib.lib_asm_deps
+    let add_cmx_dep (modname, digest) =
+      if not (Hashtbl.mem cmx_deps (modname, digest)) then begin
+        Hashtbl.add cmx_deps (modname, digest) ();
+        lib.lib_deps <- (modname, digest, true) :: lib.lib_deps
       end
     in
 
     (* declare modules *)
     List.iter (fun (cmx, digest) ->
       lib.lib_asm_mods <- (cmx.ui_name, digest) :: lib.lib_asm_mods;
-      add_asm_mod cmx.ui_name digest lib;
-      add_asm_mod cmx.ui_name null_digest lib;
+      Hashtbl.add cmx_deps (cmx.ui_name, digest) ();
+      add_mod cmx.ui_name digest true lib;
+      add_mod cmx.ui_name null_digest true lib;
     ) desc.cmxa_units;
 
     (* find external dependencies *)
@@ -74,24 +96,53 @@ let add_byte_library lib filename =
   match BuildObjectInspector.load_object_file filename with
   | CMA desc ->
     lib.lib_byte_exists <- true;
+
+    let cmx_deps = Hashtbl.create 113 in
+
+      (* declare modules *)
+    List.iter (fun cmo ->
+      let digest = List.assoc cmo.cu_name cmo.cu_imports in
+      Hashtbl.add cmx_deps (cmo.cu_name, digest) ();
+      lib.lib_byte_mods <- (cmo.cu_name, digest) :: lib.lib_byte_mods;
+      add_mod cmo.cu_name digest false lib;
+    ) desc.cma_units;
+
+
+    if not lib.lib_asm_exists then
+      let add_cmx_dep (modname, digest) =
+        if not (Hashtbl.mem cmx_deps (modname, digest)) then begin
+          Hashtbl.add cmx_deps (modname, digest) ();
+          lib.lib_deps <- (modname, digest, false) :: lib.lib_deps
+        end
+      in
+
+      (* find external dependencies *)
+      List.iter (fun cmo ->
+        List.iter add_cmx_dep cmo.cu_imports;
+      ) desc.cma_units
+
+
   | _ -> assert false
 
 let add_new_library filename =
+  if Filename.check_suffix filename ".p" then () else
   let lib_name = Filename.basename filename in
   let lib_dirname = Filename.dirname filename in
 
   let lib = {
     lib_name = lib_name;
+    lib_basename = lib_name;
     lib_dirname = lib_dirname;
-    lib_provide = None;
+    lib_provide = [];
 
     lib_asm_exists = false;
-    lib_asm_mods = [];
-    lib_asm_deps = [];
-
     lib_byte_exists = false;
+    lib_asm_mods = [];
     lib_byte_mods = [];
-    lib_byte_deps = [];
+    lib_deps = [];
+
+    lib_includes = []; (* provides *)
+    lib_included_in = []; (* provided by *)
   } in
 
   Hashtbl.add filenames filename lib;
@@ -138,6 +189,16 @@ let scan_directory dirname =
   Printf.printf "scan_directory %s\n%!" dirname;
   BuildScanner.scan_directory_for_extensions dirname map
 
+
+
+
+
+
+
+
+
+
+
 let find_longname lib =
   let rec iter dirname lib_name =
     if List.mem dirname !dirs then lib_name else
@@ -154,7 +215,7 @@ let generate_ocp filename =
   Printf.fprintf oc "begin\n";
   Printf.fprintf oc "  generated = true\n";
 
-(* Generate uniq names for libraries *)
+  (* Generate uniq names for libraries *)
   StringMap.iter (fun lib_name libs ->
     match !libs with
       [ lib ] -> ()
@@ -173,7 +234,6 @@ let generate_ocp filename =
       let counter = ref 0 in
       let rename_lib lib =
         incr counter;
-        lib.lib_provide <- Some lib.lib_name;
         lib.lib_name <- Printf.sprintf "%s%d" lib_name !counter
       in
       StringMap.iter (fun long_name libs ->
@@ -183,8 +243,6 @@ let generate_ocp filename =
         else
           match !libs with
             [ lib ] ->
-              if long_name <> lib_name then
-                lib.lib_provide <- Some lib_name;
               lib.lib_name <- long_name
           | libs ->
             List.iter rename_lib libs
@@ -192,45 +250,162 @@ let generate_ocp filename =
 
   ) !libnames;
 
+  (* Check inclusions *)
+  let check_included_in lib modules native =
+    match modules with
+      [] -> () (* weird *)
+    | (modname, digest) :: modules ->
+      try
+        let libs = Hashtbl.find mods (modname, digest, native) in
+        let included_in = ref [] in
+        try
+          List.iter (fun l ->
+            if l != lib then included_in := l :: !included_in) !libs;
+          List.iter (fun (modname, digest) ->
+            if !included_in = [] then raise Exit;
+            let libs = Hashtbl.find mods (modname, digest, native) in
+            let libs = !libs in
+            let prev = !included_in in
+            included_in := [];
+            List.iter (fun l ->
+              if List.memq l libs then
+                included_in := l :: !included_in
+            ) prev
+          ) modules;
+          lib.lib_included_in <- !included_in;
+          List.iter (fun l ->
+            l.lib_includes <- lib :: l.lib_includes
+          ) !included_in
+        with Exit -> ()
+      with Not_found -> assert false
+  in
+
+  StringMap.iter (fun _ libs ->
+    List.iter (fun lib ->
+      if lib.lib_asm_exists then
+        check_included_in lib lib.lib_asm_mods true
+      else
+        check_included_in lib lib.lib_byte_mods false
+    ) !libs
+  ) !libnames;
+
+
+
   let declare_library lib =
 
     Printf.fprintf oc "  begin library %S\n" lib.lib_name;
-      begin match lib.lib_provide with
-        None -> ()
-      | Some lib_name ->
-        Printf.fprintf oc "    provide = %S\n" lib_name;
-      end;
+(*
+    begin match lib.lib_provide with
+    | Some lib_name when lib_name <> lib.lib_name ->
+      Printf.fprintf oc "    provide = %S\n" lib_name;
+    | None | Some _ -> ()
+    end;
+*)
+    if lib.lib_basename <> lib.lib_name then
+      Printf.fprintf oc "    basename = %S\n" lib.lib_basename;
     Printf.fprintf oc "    dirname = %S\n" lib.lib_dirname;
 
     if not lib.lib_asm_exists then
-      Printf.fprintf oc "    has_asm = false\n"
-    else begin
-      let requires = ref [] in
-      let asm_deps = Hashtbl.create 113 in
-      Hashtbl.add asm_deps lib.lib_name lib;
-
-      List.iter (fun (modname, digest) ->
-        try
-          match ! (Hashtbl.find asm_mods (modname, digest)) with
-            [ lib ] ->
-              if not (Hashtbl.mem asm_deps lib.lib_name) then begin
-                Hashtbl.add asm_deps lib.lib_name lib;
-                requires := lib.lib_name :: !requires
-              end;
-          | _ -> ()
-        with Not_found -> ()
-      ) lib.lib_asm_deps;
-
-      if !requires <> [] then begin
-        Printf.fprintf oc "    requires = [ ";
-        List.iter (fun lib_name -> Printf.fprintf oc "%S " lib_name) !requires;
-        Printf.fprintf oc "]\n";
-      end;
-
-    end;
-
+      Printf.fprintf oc "    has_asm = false\n";
     if not lib.lib_byte_exists then
       Printf.fprintf oc "    has_byte = false\n";
+
+    let requires = ref [] in
+    let asm_deps = Hashtbl.create 113 in
+    Hashtbl.add asm_deps lib.lib_name ();
+
+    let add_require lib_name =
+      if not (Hashtbl.mem asm_deps lib_name) then begin
+        Hashtbl.add asm_deps lib_name ();
+        requires := lib_name :: !requires
+      end
+    in
+
+    let forced_libs = ref [] in
+    let not_found = ref [] in
+    let ambiguous = ref [] in
+    List.iter (fun (modname, digest, native) ->
+      try
+        match ! (Hashtbl.find mods (modname, digest, native)) with
+          [ lib ] ->
+            forced_libs := lib :: !forced_libs;
+            add_require lib.lib_name
+        | libs ->
+
+          ambiguous := (modname, digest, libs) :: !ambiguous
+      with Not_found ->
+        not_found := (modname, digest) :: !not_found
+    ) lib.lib_deps;
+
+    let added = ref true in
+    while !added do
+      added := false;
+      let rem = !ambiguous in
+      ambiguous := [];
+      List.iter (fun (modname, digest, libs) ->
+        let libs = List.filter (fun lib -> not (List.memq lib !forced_libs)) libs in
+        match libs with
+          [ lib ] ->
+            forced_libs := lib :: !forced_libs; added := true;
+            add_require lib.lib_name
+        | [] -> ()
+        | _ -> ambiguous := (modname, digest, libs) :: !ambiguous
+      ) rem;
+    done;
+
+(*
+    let rem = !ambiguous in
+    ambiguous := [];
+    List.iter (fun (modname, digest, libs) ->
+      match libs with
+      | { lib_name = lib_name ;
+          lib_provide = Some lib_provide } :: libs ->
+        if List.for_all (fun lib -> lib.lib_provide = lib.lib_provide )
+          libs
+        then
+          add_require lib_provide
+        else
+          ambiguous := (modname, digest, libs) :: !ambiguous
+      | _ -> ambiguous := (modname, digest, libs) :: !ambiguous
+    ) rem;
+*)
+
+    List.iter (fun (modname, digest) ->
+      Printf.fprintf oc "      (* provided: %s %s *) \n"
+        modname (Digest.to_hex digest)
+    ) (if lib.lib_asm_exists then lib.lib_asm_mods else lib.lib_byte_mods);
+
+    List.iter (fun (modname, digest, native) ->
+      Printf.fprintf oc "      (* uses: %s %s *) \n"
+        modname (Digest.to_hex digest)
+    ) lib.lib_deps;
+
+    List.iter (fun (modname, digest, libs) ->
+      Printf.fprintf oc "      (* ambiguous: %s %s [%s] *) \n"
+        modname (Digest.to_hex digest)
+        (String.concat "," (List.map (fun lib -> lib.lib_name) libs))
+    ) !ambiguous;
+
+    List.iter (fun (modname, digest) ->
+      Printf.fprintf oc "      (* not found: %s %s *) \n"
+        modname (Digest.to_hex digest)
+    ) !not_found;
+
+    List.iter (fun lib ->
+      Printf.fprintf oc "      (* provides : %S *)\n" lib.lib_name;
+    ) lib.lib_includes;
+
+    List.iter (fun lib ->
+      Printf.fprintf oc "      (* included in : %S *)\n" lib.lib_name;
+    ) lib.lib_included_in;
+
+    if !requires <> [] then begin
+      Printf.fprintf oc "    requires = [ ";
+      List.iter (fun lib_name -> Printf.fprintf oc "%S " lib_name) !requires;
+      Printf.fprintf oc "]\n";
+    end;
+
+
     Printf.fprintf oc "  end\n";
   in
 

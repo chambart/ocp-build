@@ -286,8 +286,8 @@ let rec safe_mkdir filename =
     | _ ->
       Unix.mkdir filename 0o755
 
-let rename fa1 fa2 =           
-  let target_of_rename = fa2 in
+let rename fa1 fa2 =
+(*  let target_of_rename = fa2 in *)
   if Win32.os_type = Win32.WINDOWS &&
     Sys.file_exists fa2 then begin
       try (* on Windows, Sys.rename will fail if target
