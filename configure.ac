@@ -1,4 +1,4 @@
-AC_INIT(typerex,0.1)
+AC_INIT(ocp-build,0.1)
 AC_COPYRIGHT(Copyright 2012 OcamlPro SAS)
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -34,7 +34,6 @@ datarootdir="`eval echo ${datarootdir}`"
 
 AC_CONFIG_FILES(
   Makefile.config
-  typerex.config
 )
 AC_OUTPUT
 
@@ -43,6 +42,6 @@ touch ocp-build.root
 
 echo
 echo Executables will be installed in ${bindir}
-echo Libraries will be installed in ${libdir} + typerex
-echo Data files will be installed in ${datarootdir} + typerex
+echo Libraries will be installed in ${libdir} + ocp
+echo Data files will be installed in ${datarootdir} + ocp
 echo Manual pages will be installed in ${mandir}

@@ -4,9 +4,7 @@
 
 include Makefile.config
 
-
-
-OCPBUILD=./ocp-build/ocp-build
+OCPBUILD=./ocp-build-boot/ocp-build
 OCPBUILD_FLAGS=
 
 all: $(OCPBUILD)
@@ -22,76 +20,42 @@ opt: $(OCPBUILD)
 noscan: $(OCPBUILD)
 	$(OCPBUILD) $(OCPBUILD_FLAGS)
 
-clone:
-	svn checkout http://caml.inria.fr/svn/ocaml/version/4.00 ocaml/ocaml
-
-ocp-build/ocp-build.boot: boot/ocp-build.boot
-	cp -f boot/ocp-build.boot ocp-build/ocp-build.boot
+ocp-build-boot/ocp-build.boot: boot/ocp-build.boot
+	cp -f boot/ocp-build.boot ocp-build-boot/ocp-build.boot
 
 WIN32_FILES= \
   libs/stubs/win32/win32_waitpids_c.c \
   libs/stubs/win32/win32_fileinfo_c.c
 
-ocp-build/win32_c.c: $(WIN32_FILES)
-	cat $(WIN32_FILES) > ocp-build/win32_c.c
+ocp-build-boot/win32_c.c: $(WIN32_FILES)
+	cat $(WIN32_FILES) > ocp-build-boot/win32_c.c
 
-ocp-build/ocp-build: ocp-build/ocp-build.boot ocp-build/win32_c.c
-	$(MAKE) -C ocp-build
+ocp-build-boot/ocp-build: ocp-build-boot/ocp-build.boot ocp-build-boot/win32_c.c
+	$(MAKE) -C ocp-build-boot
 
 scan: $(OCPBUILD)
 	$(OCPBUILD) -scan
+
 sanitize: $(OCPBUILD)
 	$(OCPBUILD) -sanitize
+
 ocpbuild: $(OCPBUILD)
 	$(OCPBUILD) ocp-build
 
-clean-temps:
-
-clean: clean-temps $(OCPBUILD)
+clean: $(OCPBUILD)
 	$(OCPBUILD) -clean
+
 distclean: clean $(OCPBUILD)
 	$(OCPBUILD) -distclean
-
+	$(MAKE) -C ocp-build-boot clean
 
 install:
-	mkdir -p $(TYPEREXDIR)
+	mkdir -p $(OCPBUILDDIR)
 	mkdir -p $(BINDIR)
 	cp _obuild/ocp-build/ocp-build.asm $(BINDIR)/ocp-build
-	cp _obuild/ocp-fix-errors/ocp-fix-errors.asm $(BINDIR)/ocp-fix-errors
-	cp _obuild/ocp-edit-mode/ocp-edit-mode.asm $(BINDIR)/ocp-edit-mode
-	cp _obuild/ocp-spotter/ocp-spotter.asm $(BINDIR)/ocp-spotter
-	cp _obuild/ocp-type-from-loc/ocp-type-from-loc.asm $(BINDIR)/ocp-type-from-loc
-	rm -rf $(TYPEREXDIR)/ocp-edit-mode
-	cp -dpR tools/ocp-edit-mode/files $(TYPEREXDIR)/ocp-edit-mode
 
-#install-emacs:
-#	cp tools/ocp-fix-errors/emacs/ocp-fix-errors.el $(HOME)/.emacs.d/
-
-install-manager:
-	sudo cp _obuild/ocaml-manager/ocaml-manager.asm /usr/bin/ocaml-manager
-	sudo ocaml-manager -update
-#
-#  Building boot/ocp-build.boot is difficult, because it must run
-# with any version of ocamlrun. Currently, we remove dynamic dependencies
-# from ocp-build and remove all unused primitives, using ocp-bytecode.
-#
-
-_obuild/ocp-bytecode/ocp-bytecode.byte \
-_obuild/ocp-build/ocp-build.byte:
-	$(OCPBUILD) -byte ocp-bytecode ocp-build
-
-# We are happy with what we have generated, we just want it to be compiled
-# with ocaml-3.12.1
-upgrade-ocp-build:
-	mv _obuild/ocp-build/ocp-build.asm boot/
-	ocaml-manager -set ocaml-3.12.1
-	./boot/ocp-build.asm -clean
-	./boot/ocp-build.asm -byte ocp-build ocp-bytecode
-
-# update boot/ with and check it works
-bootstrap-ready: \
-   _obuild/ocp-bytecode/ocp-bytecode.byte \
-   _obuild/ocp-build/ocp-build.byte
+uninstall:
+	rm -f $(BINDIR)/ocp-build
 
 old-ocp-build:
 	OCAML_VERSION=ocaml-3.12.1 ocp-build -arch 3.12.1 ocp-build
@@ -101,7 +65,7 @@ bootstrap: old-ocp-build
 	mv boot Saved
 	mkdir boot
 	mv Saved boot/Saved
-	_obuild/ocp-bytecode/ocp-bytecode.byte _obuild/3.12.1/ocp-build/ocp-build.byte \
+	ocp-bytecode _obuild/3.12.1/ocp-build/ocp-build.byte \
 	   -make-static \
 	   -filter-unused-prims \
 	   -remove-prims tools/ocp-build/remove-primitives.txt \
@@ -121,7 +85,7 @@ bootclean:
 	rm -rf boot/Saved
 
 make-boot:
-	ocamlc -o boot/ocp-build.boot -use-runtime  boot/ocp-build-runner \
+	ocamlc -o boot/ocp-build.boot -use-runtime boot/ocp-build-runner \
 	   -use-prims boot/prims_needed.txt \
 	   unix.cma \
            ./_obuild/ocplib-lang/ocplib-lang.cma \
@@ -129,11 +93,6 @@ make-boot:
            ./_obuild/ocp-build-engine/ocp-build-engine.cma \
            ./_obuild/ocp-build-lib/ocp-build-lib.cma \
            ./_obuild/ocp-build/buildMain.cmo
-
-fabrice-upload:
-	git checkout fabrice-typerex
-	git push origin fabrice-typerex
-	git push ocamlpro fabrice-typerex
 
 doc:
 	cd docs/user-manual; $(MAKE)
